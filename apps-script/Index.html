@@ -37,8 +37,13 @@
     .pill { display: inline-block; background: #eef5ef; color: #2f6f4f; border-radius: 12px; padding: 2px 10px; font-size: 0.75rem; }
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 8px; }
     th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #eee; }
-    #status { font-size: 0.85rem; color: #2f6f4f; margin-top: 8px; min-height: 1.2em; }
+    #status { font-size: 0.85rem; color: #2f6f4f; margin-top: 8px; min-height: 1.2em; transition: opacity 0.3s; }
     #loading { text-align: center; padding: 40px; color: #888; }
+    #progressCard .progress-bar { height: 14px; }
+    #overallPct { font-size: 2rem; font-weight: 700; color: #2f6f4f; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip { background: #eee; color: #666; border-radius: 12px; padding: 4px 10px; font-size: 0.78rem; }
+    .chip.done { background: #2f6f4f; color: #fff; }
   </style>
 </head>
 <body>
@@ -46,6 +51,13 @@
   <div class="sub" id="dateLabel">Loading…</div>
   <div id="loading">Loading today's data…</div>
   <div id="app" style="display:none;">
+
+    <div class="card" id="progressCard">
+      <h2>Today's Progress</h2>
+      <span id="overallPct">0%</span>
+      <div class="progress-bar"><div class="progress-fill" id="overallFill" style="width:0%;"></div></div>
+      <div class="chips" id="chipRow"></div>
+    </div>
 
     <div class="card">
       <h2>First Batch — Today's Message</h2>
@@ -128,8 +140,8 @@
     <div class="card">
       <h2>Notes</h2>
       <input type="text" id="dayNotes" placeholder="anything worth remembering about today">
-      <button onclick="saveAll()">Save today's log</button>
-      <div id="status"></div>
+      <button onclick="saveAll()">Save now</button>
+      <div id="status">Everything above saves automatically as you go.</div>
     </div>
 
     <div class="card">
@@ -143,6 +155,10 @@
 
   <script>
     var latest = null;
+    var saveTimer = null;
+    var saving = false;
+    var dirtyWhileSaving = false;
+    var AUTOSAVE_DEBOUNCE_MS = 800;
 
     function load() {
       google.script.run.withSuccessHandler(onLoaded).clientGetToday();
@@ -197,7 +213,114 @@
         ctx.prayerLogged.total + ' / ' + t.total + ' minutes logged today (' + pct + '%)';
 
       document.getElementById('dayNotes').value = ctx.notes || '';
+      updateProgressUI();
     }
+
+    // ---- Live "Today's Progress" summary — recomputed from the DOM on
+    // every keystroke/click, so it moves instantly without waiting on a
+    // server round trip. ---------------------------------------------------
+    function updateProgressUI() {
+      if (!latest) return;
+      var set1Done = document.getElementById('set1Done').checked;
+      var set2Started = Number(document.getElementById('set2Minutes').value || 0) > 0;
+      var rhapsodyDone = document.getElementById('rhapsodyDone').checked;
+      var bibleDone = document.getElementById('bibleDone').checked;
+
+      var t = latest.prayerTargets;
+      var prayerTotal = Number(document.getElementById('pMorning').value || 0) +
+        Number(document.getElementById('pEvening').value || 0) +
+        Number(document.getElementById('pCampus').value || 0) +
+        Number((document.getElementById('pFriday') || {}).value || 0) +
+        Number((document.getElementById('pSaturday') || {}).value || 0);
+      var prayerPct = t.total > 0 ? Math.min(100, Math.round(100 * prayerTotal / t.total)) : 0;
+
+      // reflect the live prayer total on its own bar too, not just the overall one
+      document.getElementById('prayerBar').style.width = prayerPct + '%';
+      document.getElementById('prayerSummary').textContent =
+        prayerTotal + ' / ' + t.total + ' minutes logged today (' + prayerPct + '%)';
+
+      var parts = [
+        { label: 'First Batch', done: set1Done },
+        { label: 'Second Batch', done: set2Started },
+        { label: 'Rhapsody', done: rhapsodyDone },
+        { label: 'Bible', done: bibleDone },
+        { label: 'Prayer ' + prayerPct + '%', done: prayerPct >= 100, pct: prayerPct }
+      ];
+      var sum = (set1Done ? 100 : 0) + (set2Started ? 100 : 0) + (rhapsodyDone ? 100 : 0) +
+        (bibleDone ? 100 : 0) + prayerPct;
+      var overall = Math.round(sum / parts.length);
+
+      document.getElementById('overallPct').textContent = overall + '%';
+      document.getElementById('overallFill').style.width = overall + '%';
+
+      var chipRow = document.getElementById('chipRow');
+      chipRow.innerHTML = '';
+      parts.forEach(function (p) {
+        var chip = document.createElement('span');
+        chip.className = 'chip' + (p.done ? ' done' : '');
+        chip.textContent = (p.done ? '✓ ' : '') + p.label;
+        chipRow.appendChild(chip);
+      });
+    }
+
+    // ---- Autosave --------------------------------------------------------
+    // Any change recomputes the progress summary immediately (client-side,
+    // instant) and schedules a save to the sheet shortly after (debounced
+    // for typing, so we're not hammering the server on every keystroke).
+    function onFieldChange() {
+      updateProgressUI();
+      scheduleAutosave();
+    }
+
+    function scheduleAutosave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(persist, AUTOSAVE_DEBOUNCE_MS);
+    }
+
+    function persist() {
+      saveTimer = null; // the scheduled save (if any) is the one running now
+      if (saving) { dirtyWhileSaving = true; return; }
+      saving = true;
+      var statusEl = document.getElementById('status');
+      statusEl.textContent = 'Saving…';
+      google.script.run
+        .withSuccessHandler(function (ctx) {
+          latest = ctx; // keep targets etc. current without re-touching form fields the user is mid-edit on
+          saving = false;
+          statusEl.textContent = 'Saved ✓ · ' + new Date().toLocaleTimeString();
+          google.script.run.withSuccessHandler(onHistory).clientGetHistory(14);
+          if (dirtyWhileSaving) { dirtyWhileSaving = false; scheduleAutosave(); }
+        })
+        .withFailureHandler(function (err) {
+          saving = false;
+          statusEl.textContent = 'Could not save — will retry (' + err.message + ')';
+          scheduleAutosave();
+        })
+        .clientSaveLog(collectEntry());
+    }
+
+    function wireAutosave() {
+      var ids = [
+        'set1Done', 'set2Minutes', 'set2Notes', 'rhapsodyDone', 'rhapsodyNotes',
+        'bibleMonth', 'bibleWeek', 'bibleDay', 'bibleDone',
+        'pMorning', 'pEvening', 'pFriday', 'pSaturday', 'pCampus', 'dayNotes'
+      ];
+      ids.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var evt = (el.type === 'checkbox') ? 'change' : 'input';
+        el.addEventListener(evt, onFieldChange);
+      });
+    }
+
+    // Catch up with the sheet if this tab was left open and another device
+    // (or the reminder-email link opened elsewhere) logged something since —
+    // only when there's nothing unsaved sitting in the debounce window.
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && !saveTimer && !saving) {
+        load();
+      }
+    });
 
     function onHistory(rows) {
       var tbody = document.querySelector('#historyTable tbody');
@@ -234,12 +357,8 @@
     }
 
     function saveAll() {
-      document.getElementById('status').textContent = 'Saving…';
-      google.script.run.withSuccessHandler(function (ctx) {
-        onLoaded(ctx);
-        document.getElementById('status').textContent = 'Saved ✓';
-        google.script.run.withSuccessHandler(onHistory).clientGetHistory(14);
-      }).clientSaveLog(collectEntry());
+      if (saveTimer) clearTimeout(saveTimer);
+      persist();
     }
 
     function advanceSet2() {
@@ -253,6 +372,7 @@
       google.script.run.withSuccessHandler(onLoaded).clientSetBiblePointer(m, w, d);
     }
 
+    wireAutosave();
     load();
   </script>
 </body>
