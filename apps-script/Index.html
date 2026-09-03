@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f6f5f0; color: #2b2b26; margin: 0; padding: 16px;
+      max-width: 560px; margin-left: auto; margin-right: auto;
+    }
+    h1 { font-size: 1.3rem; margin-bottom: 0; }
+    .sub { color: #776; margin-top: 2px; font-size: 0.9rem; }
+    .card {
+      background: #fff; border-radius: 10px; padding: 16px; margin-top: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .card h2 { font-size: 1rem; margin: 0 0 10px; color: #2f6f4f; }
+    label { display: block; font-size: 0.85rem; color: #555; margin-top: 10px; }
+    input[type=number], select {
+      width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;
+      font-size: 1rem; margin-top: 4px;
+    }
+    .row { display: flex; gap: 8px; }
+    .row > div { flex: 1; }
+    .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .check input { width: 18px; height: 18px; }
+    button {
+      background: #2f6f4f; color: #fff; border: none; border-radius: 6px;
+      padding: 10px 16px; font-size: 0.95rem; cursor: pointer; margin-top: 12px;
+    }
+    button.secondary { background: #eee; color: #333; }
+    .msg { font-weight: 600; }
+    .progress-bar { background: #eee; border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
+    .progress-fill { background: #2f6f4f; height: 100%; }
+    .pill { display: inline-block; background: #eef5ef; color: #2f6f4f; border-radius: 12px; padding: 2px 10px; font-size: 0.75rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 8px; }
+    th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #eee; }
+    #status { font-size: 0.85rem; color: #2f6f4f; margin-top: 8px; min-height: 1.2em; }
+    #loading { text-align: center; padding: 40px; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Spiritual Progress Tracker</h1>
+  <div class="sub" id="dateLabel">Loading…</div>
+  <div id="loading">Loading today's data…</div>
+  <div id="app" style="display:none;">
+
+    <div class="card">
+      <h2>First Batch — Today's Message</h2>
+      <div class="msg" id="set1Message"></div>
+      <div class="check">
+        <input type="checkbox" id="set1Done">
+        <label for="set1Done" style="margin:0;">Listened to it</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Second Batch — Current Message</h2>
+      <span class="pill" id="set2Pill"></span>
+      <div class="msg" id="set2Message" style="margin-top:6px;"></div>
+      <label>Minutes listened today</label>
+      <input type="number" id="set2Minutes" min="0">
+      <label>Notes</label>
+      <input type="text" id="set2Notes" placeholder="optional">
+      <button class="secondary" onclick="advanceSet2()">Mark finished → move to next message</button>
+    </div>
+
+    <div class="card">
+      <h2>Bible Reading Plan</h2>
+      <div class="row">
+        <div>
+          <label>Month</label>
+          <input type="number" id="bibleMonth" min="1">
+        </div>
+        <div>
+          <label>Week</label>
+          <input type="number" id="bibleWeek" min="1">
+        </div>
+        <div>
+          <label>Day</label>
+          <input type="number" id="bibleDay" min="1">
+        </div>
+      </div>
+      <button class="secondary" onclick="updateBiblePointer()">Update position</button>
+      <div class="check">
+        <input type="checkbox" id="bibleDone">
+        <label for="bibleDone" style="margin:0;">Read today's portion</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Prayer — <span id="phaseLabel"></span></h2>
+      <div class="progress-bar"><div class="progress-fill" id="prayerBar" style="width:0%;"></div></div>
+      <div class="sub" id="prayerSummary" style="margin-top:6px;"></div>
+
+      <label>Morning (<span id="tMorning"></span> min target)</label>
+      <input type="number" id="pMorning" min="0">
+
+      <label>Evening (<span id="tEvening"></span> min target)</label>
+      <input type="number" id="pEvening" min="0">
+
+      <div id="fridayRow" style="display:none;">
+        <label>Friday Night Prayer (<span id="tFriday"></span> min target)</label>
+        <input type="number" id="pFriday" min="0">
+      </div>
+
+      <div id="saturdayRow" style="display:none;">
+        <label>Saturday Night Prayer (<span id="tSaturday"></span> min target)</label>
+        <input type="number" id="pSaturday" min="0">
+      </div>
+
+      <label>Campus prayer & prophesying (<span id="tCampus"></span> min target)</label>
+      <input type="number" id="pCampus" min="0">
+    </div>
+
+    <div class="card">
+      <h2>Notes</h2>
+      <input type="text" id="dayNotes" placeholder="anything worth remembering about today">
+      <button onclick="saveAll()">Save today's log</button>
+      <div id="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Last 14 Days</h2>
+      <table id="historyTable">
+        <thead><tr><th>Date</th><th>Set1</th><th>Set2 min</th><th>Prayer</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    var latest = null;
+
+    function load() {
+      google.script.run.withSuccessHandler(onLoaded).clientGetToday();
+      google.script.run.withSuccessHandler(onHistory).clientGetHistory(14);
+    }
+
+    function onLoaded(ctx) {
+      latest = ctx;
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('dateLabel').textContent = ctx.dayName + (ctx.inWindow ? '' : ' (outside tracking window)');
+
+      document.getElementById('set1Message').textContent = ctx.set1Message;
+      document.getElementById('set1Done').checked = ctx.set1Done;
+
+      document.getElementById('set2Pill').textContent = 'Message ' + ctx.set2Index + ' of ' + ctx.set2Total;
+      document.getElementById('set2Message').textContent = ctx.set2Message;
+      document.getElementById('set2Minutes').value = ctx.set2MinutesLogged || '';
+      document.getElementById('set2Notes').value = ctx.set2Notes || '';
+
+      document.getElementById('bibleMonth').value = ctx.bibleMonth;
+      document.getElementById('bibleWeek').value = ctx.bibleWeek;
+      document.getElementById('bibleDay').value = ctx.bibleDay;
+      document.getElementById('bibleDone').checked = ctx.bibleDone;
+
+      var t = ctx.prayerTargets;
+      document.getElementById('phaseLabel').textContent = ctx.phaseLabel;
+      document.getElementById('tMorning').textContent = t.morning;
+      document.getElementById('tEvening').textContent = t.evening;
+      document.getElementById('tCampus').textContent = t.campus;
+      document.getElementById('pMorning').value = ctx.prayerLogged.morning || '';
+      document.getElementById('pEvening').value = ctx.prayerLogged.evening || '';
+      document.getElementById('pCampus').value = ctx.prayerLogged.campus || '';
+
+      if (t.fridayNight > 0) {
+        document.getElementById('fridayRow').style.display = 'block';
+        document.getElementById('tFriday').textContent = t.fridayNight;
+        document.getElementById('pFriday').value = ctx.prayerLogged.friday || '';
+      }
+      if (t.saturdayNight > 0) {
+        document.getElementById('saturdayRow').style.display = 'block';
+        document.getElementById('tSaturday').textContent = t.saturdayNight;
+        document.getElementById('pSaturday').value = ctx.prayerLogged.saturday || '';
+      }
+
+      var pct = t.total > 0 ? Math.min(100, Math.round(100 * ctx.prayerLogged.total / t.total)) : 0;
+      document.getElementById('prayerBar').style.width = pct + '%';
+      document.getElementById('prayerSummary').textContent =
+        ctx.prayerLogged.total + ' / ' + t.total + ' minutes logged today (' + pct + '%)';
+
+      document.getElementById('dayNotes').value = ctx.notes || '';
+    }
+
+    function onHistory(rows) {
+      var tbody = document.querySelector('#historyTable tbody');
+      tbody.innerHTML = '';
+      rows.forEach(function (r) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td>' + r.date + '</td><td>' + (r.set1Done === 'Yes' ? '✅' : '—') + '</td>' +
+          '<td>' + (r.set2Minutes || 0) + '</td><td>' + (r.prayerTotal || 0) + '/' + (r.prayerTarget || 0) + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    function collectEntry() {
+      return {
+        set1Message: latest.set1Message,
+        set1Done: document.getElementById('set1Done').checked,
+        set2Message: latest.set2Message,
+        set2Minutes: document.getElementById('set2Minutes').value,
+        set2Notes: document.getElementById('set2Notes').value,
+        bibleMonth: document.getElementById('bibleMonth').value,
+        bibleWeek: document.getElementById('bibleWeek').value,
+        bibleDay: document.getElementById('bibleDay').value,
+        bibleDone: document.getElementById('bibleDone').checked,
+        prayerMorning: document.getElementById('pMorning').value,
+        prayerEvening: document.getElementById('pEvening').value,
+        prayerFriday: document.getElementById('pFriday') ? document.getElementById('pFriday').value : 0,
+        prayerSaturday: document.getElementById('pSaturday') ? document.getElementById('pSaturday').value : 0,
+        prayerCampus: document.getElementById('pCampus').value,
+        notes: document.getElementById('dayNotes').value
+      };
+    }
+
+    function saveAll() {
+      document.getElementById('status').textContent = 'Saving…';
+      google.script.run.withSuccessHandler(function (ctx) {
+        onLoaded(ctx);
+        document.getElementById('status').textContent = 'Saved ✓';
+        google.script.run.withSuccessHandler(onHistory).clientGetHistory(14);
+      }).clientSaveLog(collectEntry());
+    }
+
+    function advanceSet2() {
+      google.script.run.withSuccessHandler(onLoaded).clientAdvanceSet2();
+    }
+
+    function updateBiblePointer() {
+      var m = document.getElementById('bibleMonth').value;
+      var w = document.getElementById('bibleWeek').value;
+      var d = document.getElementById('bibleDay').value;
+      google.script.run.withSuccessHandler(onLoaded).clientSetBiblePointer(m, w, d);
+    }
+
+    load();
+  </script>
+</body>
+</html>
