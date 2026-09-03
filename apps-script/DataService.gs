@@ -100,12 +100,27 @@ function setBiblePointer(month, week, day) {
 }
 
 // ---- Daily log --------------------------------------------------------------
+/**
+ * Sheets silently converts a date-shaped string ("2026-09-03") into a real
+ * Date value when it's written, even via the API. Comparing that Date back
+ * against the plain dateStr with === always fails, so every lookup would
+ * have missed and every save would have appended a fresh row instead of
+ * updating today's. Normalizing both sides to the same yyyy-MM-dd string
+ * before comparing is what makes "one row per day" actually hold.
+ */
+function normalizeDateCell_(cellValue) {
+  if (cellValue instanceof Date) {
+    return Utilities.formatDate(cellValue, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(cellValue);
+}
+
 function findRowForDate_(sheet, dateStr) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return -1;
   var dates = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
   for (var i = 0; i < dates.length; i++) {
-    if (dates[i][0] === dateStr) return i + 2;
+    if (normalizeDateCell_(dates[i][0]) === dateStr) return i + 2;
   }
   return -1;
 }

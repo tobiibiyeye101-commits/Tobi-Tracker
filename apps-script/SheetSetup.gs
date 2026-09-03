@@ -81,6 +81,10 @@ function ensureDailyLogSheet_(ss) {
   } else {
     migrateDailyLogAddRhapsody_(sheet);
   }
+  // Force column A to plain text so Sheets stops silently converting the
+  // "yyyy-MM-dd" date key into a real Date value — that conversion is what
+  // broke same-day row lookups (see normalizeDateCell_ in DataService.gs).
+  sheet.getRange('A2:A').setNumberFormat('@');
   return sheet;
 }
 
