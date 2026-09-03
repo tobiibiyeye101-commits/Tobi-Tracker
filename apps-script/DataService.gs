@@ -111,7 +111,7 @@ function findRowForDate_(sheet, dateStr) {
 }
 
 function getLogRow_(dateStr) {
-  var sheet = getOrCreateSpreadsheet_().getSheetByName('Daily_Log');
+  var sheet = getDailyLogSheet_();
   var row = findRowForDate_(sheet, dateStr);
   if (row === -1) return null;
   var values = sheet.getRange(row, 1, 1, 22).getValues()[0];
@@ -130,7 +130,7 @@ function getLogRow_(dateStr) {
  * Upserts today's row from a plain object coming out of the web app form.
  */
 function saveTodayLog(entry) {
-  var sheet = getOrCreateSpreadsheet_().getSheetByName('Daily_Log');
+  var sheet = getDailyLogSheet_();
   var date = todayDate_();
   var dateStr = dateKey_(date);
   var row = findRowForDate_(sheet, dateStr);
@@ -159,7 +159,7 @@ function saveTodayLog(entry) {
 }
 
 function getHistory(days) {
-  var sheet = getOrCreateSpreadsheet_().getSheetByName('Daily_Log');
+  var sheet = getDailyLogSheet_();
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   var numRows = Math.min(days || 14, lastRow - 1);

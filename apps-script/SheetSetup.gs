@@ -85,6 +85,17 @@ function ensureDailyLogSheet_(ss) {
 }
 
 /**
+ * Every read/write in DataService.gs should fetch Daily_Log through this,
+ * not via getSheetByName() directly. It runs the same ensure/migrate check
+ * every time (cheap — one header row read), so the sheet's shape can never
+ * drift out from under a code change again just because setup() wasn't
+ * re-run first.
+ */
+function getDailyLogSheet_() {
+  return ensureDailyLogSheet_(getOrCreateSpreadsheet_());
+}
+
+/**
  * If Daily_Log was created before "Read Rhapsody" existed, insert the two
  * new columns (Rhapsody Done / Rhapsody Notes) ahead of Bible Month,
  * shifting existing Bible/Prayer/Notes columns right. Existing rows keep
