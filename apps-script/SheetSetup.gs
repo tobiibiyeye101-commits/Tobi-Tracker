@@ -12,6 +12,9 @@ function setup() {
   ensureSet2Sheet_(ss);
   ensurePointersSheet_(ss);
   ensureDailyLogSheet_(ss);
+  // Only safe to remove the default "Sheet1" once the tabs above exist —
+  // Sheets refuses to delete the last remaining sheet in a spreadsheet.
+  removeDefaultSheet_(ss);
   Logger.log('Setup complete. Spreadsheet: ' + ss.getUrl());
   return ss.getUrl();
 }
@@ -28,10 +31,12 @@ function getOrCreateSpreadsheet_() {
   }
   var ss = SpreadsheetApp.create('Tobi Spiritual Progress Tracker');
   props.setProperty('SPREADSHEET_ID', ss.getId());
-  // the default "Sheet1" isn't used by this project
-  var sheet1 = ss.getSheetByName('Sheet1');
-  if (sheet1) ss.deleteSheet(sheet1);
   return ss;
+}
+
+function removeDefaultSheet_(ss) {
+  var sheet1 = ss.getSheetByName('Sheet1');
+  if (sheet1 && ss.getSheets().length > 1) ss.deleteSheet(sheet1);
 }
 
 function ensureSet2Sheet_(ss) {
