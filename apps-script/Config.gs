@@ -54,18 +54,14 @@ var SET2_MESSAGES = [
   'Revenue Allocation'
 ];
 
-// ---- Prayer ramp -----------------------------------------------------------
-// Five phases, each wider than the last, building from a realistic starting
-// point up to the 2-hour/day minimum rather than assuming it from day one.
-// Minutes are for a normal (non-Fri/Sat) day: Morning + Evening + Campus.
-// Friday night (established, fixed) and Saturday night (new, ramps on its
-// own track) are handled separately below.
+// ---- Prayer targets ---------------------------------------------------------
+// Flat from day one — no ramp. Minutes are for a normal (non-Fri/Sat) day:
+// Morning + Evening + Campus. Friday night (established, fixed) and Saturday
+// night (fixed) are handled separately below.
+// (This used to be a 5-phase ramp building up to these numbers over ~6 weeks;
+// collapsed to a single phase covering the whole window if you want it back.)
 var PRAYER_PHASES = [
-  { fromDay: 0,  toDay: 6,   label: 'Week 1 — Starting Point',   morning: 20, evening: 20, campus: 10, saturdayNight: 60  },
-  { fromDay: 7,  toDay: 13,  label: 'Week 2 — Building',         morning: 30, evening: 30, campus: 15, saturdayNight: 90  },
-  { fromDay: 14, toDay: 27,  label: 'Weeks 3–4 — Extending',     morning: 40, evening: 40, campus: 15, saturdayNight: 120 },
-  { fromDay: 28, toDay: 41,  label: 'Weeks 5–6 — Near Target',   morning: 50, evening: 50, campus: 20, saturdayNight: 120 },
-  { fromDay: 42, toDay: 9999, label: 'Week 7+ — Full Structure', morning: 60, evening: 60, campus: 20, saturdayNight: 120 }
+  { fromDay: 0, toDay: 9999, label: 'Full Structure', morning: 60, evening: 60, campus: 20, saturdayNight: 120 }
 ];
 var FRIDAY_NIGHT_MINUTES = 180; // 3 hours — already established, not part of the ramp
 
