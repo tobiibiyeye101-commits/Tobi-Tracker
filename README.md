@@ -16,8 +16,9 @@ uses 3.
 |---|---|
 | **Set 1** | `Every Tree A Forest → A Man Sent From God → Prevailing Prayer 2 → Soul Winners Congress 2024`, repeating every 4 days from Sep 3. Computed automatically from the date — nothing to enter. |
 | **Set 2** | The 23 longer messages (This Is It, Stair Summit, Coordinators Training, Money Game series, etc.), tracked as a single "current message" pointer you advance yourself as you finish each one — not date-driven. |
+| **Read Rhapsody** | A daily done checkbox + notes, logged before the Bible reading plan each day. |
 | **Bible reading plan** | You enter Month / Week / Day directly; everything before your current entry is implicitly done. |
-| **Prayer** | 5 components — Morning, Evening, Friday Night (fixed, 3h, already established), Saturday Night (ramps), Campus prayer/prophesying (unscheduled, fills gaps) — ramping over 5 phases from a realistic starting point up to the 2-hour/day minimum by early October. See `PRAYER_PHASES` in `apps-script/Config.gs` to see or change the exact ramp. |
+| **Prayer** | 5 components — Morning (1h), Evening (1h), Friday Night (fixed, 3h, already established), Saturday Night (fixed, 2h), Campus prayer/prophesying (10min, unscheduled, fills gaps). Flat targets from day one — no ramp. See `PRAYER_PHASES` in `apps-script/Config.gs` to change any of it. |
 
 ## One-time setup (~10 minutes)
 

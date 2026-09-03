@@ -62,6 +62,8 @@ function sendMiddayEmail() {
   var body =
     '<h3>Campus Prayer & Prophesying</h3>' +
     '<p>Target: <strong>' + t.campus + ' minutes</strong>, worked into gaps in the day (before class, etc.)</p>' +
+    '<h3>Read Rhapsody</h3>' +
+    '<p>Today\'s devotional — read it before moving into the Bible reading plan below.</p>' +
     '<h3>Bible Reading Plan</h3>' +
     '<p>Currently: <strong>Month ' + ctx.bibleMonth + ', Week ' + ctx.bibleWeek + ', Day ' + ctx.bibleDay + '</strong></p>' +
     '<h3>First Batch of Messages</h3>' +

@@ -114,14 +114,15 @@ function getLogRow_(dateStr) {
   var sheet = getOrCreateSpreadsheet_().getSheetByName('Daily_Log');
   var row = findRowForDate_(sheet, dateStr);
   if (row === -1) return null;
-  var values = sheet.getRange(row, 1, 1, 20).getValues()[0];
+  var values = sheet.getRange(row, 1, 1, 22).getValues()[0];
   return {
     date: values[0], day: values[1], set1Message: values[2], set1Done: values[3],
     set2Message: values[4], set2Minutes: values[5], set2Notes: values[6],
-    bibleMonth: values[7], bibleWeek: values[8], bibleDay: values[9], bibleDone: values[10],
-    prayerMorning: values[11], prayerEvening: values[12], prayerFriday: values[13],
-    prayerSaturday: values[14], prayerCampus: values[15], prayerTotal: values[16],
-    prayerTarget: values[17], notes: values[18]
+    rhapsodyDone: values[7], rhapsodyNotes: values[8],
+    bibleMonth: values[9], bibleWeek: values[10], bibleDay: values[11], bibleDone: values[12],
+    prayerMorning: values[13], prayerEvening: values[14], prayerFriday: values[15],
+    prayerSaturday: values[16], prayerCampus: values[17], prayerTotal: values[18],
+    prayerTarget: values[19], notes: values[20]
   };
 }
 
@@ -142,6 +143,7 @@ function saveTodayLog(entry) {
     dateStr, Utilities.formatDate(date, Session.getScriptTimeZone(), 'EEEE'),
     entry.set1Message, entry.set1Done ? 'Yes' : 'No',
     entry.set2Message, Number(entry.set2Minutes || 0), entry.set2Notes || '',
+    entry.rhapsodyDone ? 'Yes' : 'No', entry.rhapsodyNotes || '',
     entry.bibleMonth, entry.bibleWeek, entry.bibleDay, entry.bibleDone ? 'Yes' : 'No',
     Number(entry.prayerMorning || 0), Number(entry.prayerEvening || 0), Number(entry.prayerFriday || 0),
     Number(entry.prayerSaturday || 0), Number(entry.prayerCampus || 0), prayerTotal,
@@ -162,13 +164,14 @@ function getHistory(days) {
   if (lastRow < 2) return [];
   var numRows = Math.min(days || 14, lastRow - 1);
   var startRow = lastRow - numRows + 1;
-  var values = sheet.getRange(startRow, 1, numRows, 20).getValues();
+  var values = sheet.getRange(startRow, 1, numRows, 22).getValues();
   return values.map(function (v) {
     return {
       date: v[0], day: v[1], set1Message: v[2], set1Done: v[3],
       set2Message: v[4], set2Minutes: v[5],
-      bibleMonth: v[7], bibleWeek: v[8], bibleDay: v[9], bibleDone: v[10],
-      prayerTotal: v[16], prayerTarget: v[17]
+      rhapsodyDone: v[7],
+      bibleMonth: v[9], bibleWeek: v[10], bibleDay: v[11], bibleDone: v[12],
+      prayerTotal: v[18], prayerTarget: v[19]
     };
   }).reverse();
 }
@@ -196,6 +199,8 @@ function getTodayContext() {
     set2Message: SET2_MESSAGES[pointers.set2Index - 1] || 'All messages complete',
     set2MinutesLogged: existing.set2Minutes || 0,
     set2Notes: existing.set2Notes || '',
+    rhapsodyDone: existing.rhapsodyDone === 'Yes',
+    rhapsodyNotes: existing.rhapsodyNotes || '',
     bibleMonth: pointers.bibleMonth,
     bibleWeek: pointers.bibleWeek,
     bibleDay: pointers.bibleDay,

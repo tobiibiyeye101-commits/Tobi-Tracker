@@ -71,14 +71,35 @@ function ensureDailyLogSheet_(ss) {
     sheet.appendRow([
       'Date', 'Day', 'Set1 Message', 'Set1 Done',
       'Set2 Message', 'Set2 Minutes', 'Set2 Notes',
+      'Rhapsody Done', 'Rhapsody Notes',
       'Bible Month', 'Bible Week', 'Bible Day', 'Bible Done',
       'Prayer Morning', 'Prayer Evening', 'Prayer Friday Night',
       'Prayer Saturday Night', 'Prayer Campus', 'Prayer Total',
       'Prayer Target', 'Notes', 'Last Updated'
     ]);
     sheet.setFrozenRows(1);
+  } else {
+    migrateDailyLogAddRhapsody_(sheet);
   }
   return sheet;
+}
+
+/**
+ * If Daily_Log was created before "Read Rhapsody" existed, insert the two
+ * new columns (Rhapsody Done / Rhapsody Notes) ahead of Bible Month,
+ * shifting existing Bible/Prayer/Notes columns right. Existing rows keep
+ * their data; the new columns are simply blank for past days.
+ */
+function migrateDailyLogAddRhapsody_(sheet) {
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headers.indexOf('Rhapsody Done') !== -1) return; // already migrated
+
+  var bibleMonthCol = headers.indexOf('Bible Month') + 1; // 1-based
+  if (bibleMonthCol === 0) return; // unexpected shape, don't guess
+
+  sheet.insertColumnsBefore(bibleMonthCol, 2);
+  sheet.getRange(1, bibleMonthCol, 1, 2).setValues([['Rhapsody Done', 'Rhapsody Notes']]);
 }
 
 /**

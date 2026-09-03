@@ -68,6 +68,16 @@
     </div>
 
     <div class="card">
+      <h2>Read Rhapsody</h2>
+      <div class="check">
+        <input type="checkbox" id="rhapsodyDone">
+        <label for="rhapsodyDone" style="margin:0;">Read today's Rhapsody</label>
+      </div>
+      <label>Notes</label>
+      <input type="text" id="rhapsodyNotes" placeholder="optional">
+    </div>
+
+    <div class="card">
       <h2>Bible Reading Plan</h2>
       <div class="row">
         <div>
@@ -125,7 +135,7 @@
     <div class="card">
       <h2>Last 14 Days</h2>
       <table id="historyTable">
-        <thead><tr><th>Date</th><th>Set1</th><th>Set2 min</th><th>Prayer</th></tr></thead>
+        <thead><tr><th>Date</th><th>Set1</th><th>Set2 min</th><th>Rhapsody</th><th>Prayer</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -152,6 +162,9 @@
       document.getElementById('set2Message').textContent = ctx.set2Message;
       document.getElementById('set2Minutes').value = ctx.set2MinutesLogged || '';
       document.getElementById('set2Notes').value = ctx.set2Notes || '';
+
+      document.getElementById('rhapsodyDone').checked = ctx.rhapsodyDone;
+      document.getElementById('rhapsodyNotes').value = ctx.rhapsodyNotes || '';
 
       document.getElementById('bibleMonth').value = ctx.bibleMonth;
       document.getElementById('bibleWeek').value = ctx.bibleWeek;
@@ -192,7 +205,8 @@
       rows.forEach(function (r) {
         var tr = document.createElement('tr');
         tr.innerHTML = '<td>' + r.date + '</td><td>' + (r.set1Done === 'Yes' ? '✅' : '—') + '</td>' +
-          '<td>' + (r.set2Minutes || 0) + '</td><td>' + (r.prayerTotal || 0) + '/' + (r.prayerTarget || 0) + '</td>';
+          '<td>' + (r.set2Minutes || 0) + '</td><td>' + (r.rhapsodyDone === 'Yes' ? '✅' : '—') + '</td>' +
+          '<td>' + (r.prayerTotal || 0) + '/' + (r.prayerTarget || 0) + '</td>';
         tbody.appendChild(tr);
       });
     }
@@ -204,6 +218,8 @@
         set2Message: latest.set2Message,
         set2Minutes: document.getElementById('set2Minutes').value,
         set2Notes: document.getElementById('set2Notes').value,
+        rhapsodyDone: document.getElementById('rhapsodyDone').checked,
+        rhapsodyNotes: document.getElementById('rhapsodyNotes').value,
         bibleMonth: document.getElementById('bibleMonth').value,
         bibleWeek: document.getElementById('bibleWeek').value,
         bibleDay: document.getElementById('bibleDay').value,
