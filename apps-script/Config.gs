@@ -61,7 +61,7 @@ var SET2_MESSAGES = [
 // (This used to be a 5-phase ramp building up to these numbers over ~6 weeks;
 // collapsed to a single phase covering the whole window if you want it back.)
 var PRAYER_PHASES = [
-  { fromDay: 0, toDay: 9999, label: 'Full Structure', morning: 60, evening: 60, campus: 20, saturdayNight: 120 }
+  { fromDay: 0, toDay: 9999, label: 'Full Structure', morning: 60, evening: 60, campus: 10, saturdayNight: 120 }
 ];
 var FRIDAY_NIGHT_MINUTES = 180; // 3 hours — already established, not part of the ramp
 
