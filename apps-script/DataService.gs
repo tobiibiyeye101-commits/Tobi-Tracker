@@ -36,7 +36,7 @@ function getPrayerTargetsForDate_(date) {
 
   var targets = {
     phaseLabel: phase.label,
-    morning: phase.morning,
+    morning: (isFriday || isSaturday) ? SHORT_MORNING_MINUTES : phase.morning, // long night session carries the day
     evening: (isFriday || isSaturday) ? 0 : phase.evening, // Fri/Sat night prayer replaces the evening block
     campus: phase.campus,
     fridayNight: isFriday ? FRIDAY_NIGHT_MINUTES : 0,

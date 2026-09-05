@@ -65,6 +65,10 @@ var PRAYER_PHASES = [
 ];
 var FRIDAY_NIGHT_MINUTES = 180; // 3 hours — already established, not part of the ramp
 
+// On Friday and Saturday the long evening session already carries the day,
+// so Morning trims down to 30 minutes instead of the usual 60.
+var SHORT_MORNING_MINUTES = 30;
+
 // ---- Reminder copy ----------------------------------------------------------
 var WEBAPP_URL_PROPERTY_KEY = 'WEBAPP_URL'; // set once via setWebAppUrl(), see README
 
