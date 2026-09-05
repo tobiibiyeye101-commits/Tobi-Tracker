@@ -10,10 +10,6 @@
       --sky-top: #0b1c33;
       --sky-mid: #274267;
       --sky-horizon: #7f9dc4;
-      --glow: #ffd9a2;
-      --mtn-far: #52709a;
-      --mtn-mid: #33496e;
-      --mtn-near: #17223b;
       --snow: #f4f8fc;
       --ink: #eef4fb;
       --ink-soft: #b6c4da;
@@ -37,7 +33,9 @@
       background-attachment: fixed;
     }
 
-    /* ---- the mountain scene: fixed, decorative, behind everything ---- */
+    /* ---- the mountain scene: fixed, decorative, behind everything ----
+       Hybrid: a real photo for the far background/sky, an illustrated
+       near-ridge silhouette in front of it for depth and parallax. ---- */
     .scene {
       position: fixed;
       inset: 0;
@@ -45,33 +43,33 @@
       pointer-events: none;
       overflow: hidden;
     }
-    .glow {
+    .photo-bg {
       position: absolute;
-      top: 6%;
-      right: 10%;
-      width: 300px;
-      height: 300px;
-      border-radius: 50%;
-      background: radial-gradient(circle, var(--glow) 0%, rgba(255,217,162,0) 70%);
-      opacity: 0.5;
-      filter: blur(4px);
+      inset: -4%; /* overscan so the Ken Burns zoom never reveals an edge */
+      background-image: url('https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Iceland%27s_Mid-Atlantic_Ridge_during_snow.jpg/960px-Iceland%27s_Mid-Atlantic_Ridge_during_snow.jpg');
+      background-size: cover;
+      background-position: center;
+      animation: kenBurns 55s ease-in-out infinite;
+      will-change: transform;
+    }
+    @keyframes kenBurns {
+      0%   { transform: scale(1.0) translate(0, 0); }
+      50%  { transform: scale(1.08) translate(-1%, -1%); }
+      100% { transform: scale(1.0) translate(0, 0); }
+    }
+    .scene-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(11,28,51,0.6) 0%, rgba(11,28,51,0.15) 38%, rgba(11,28,51,0.35) 70%, rgba(11,28,51,0.8) 100%);
     }
     .mtn {
       position: absolute;
       left: -4%;
+      bottom: 0;
       width: 108%;
       display: block;
       will-change: transform;
-    }
-    .mtn-far { bottom: 14vh; opacity: 0.85; }
-    .mtn-mid { bottom: 8vh; opacity: 0.95; }
-    .mtn-near { bottom: 0; }
-    .snowfield {
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      height: 9vh;
-      background: linear-gradient(180deg, rgba(244,248,252,0) 0%, var(--snow) 85%);
-      opacity: 0.92;
     }
     #snowCanvas { position: absolute; inset: 0; }
 
@@ -218,21 +216,15 @@
     @media (prefers-reduced-motion: reduce) {
       .card.reveal { opacity: 1; transform: none; transition: none; }
       .climb-marker { transition: none; }
+      .photo-bg { animation: none; }
     }
   </style>
 </head>
 <body>
 
   <div class="scene" aria-hidden="true">
-    <div class="glow"></div>
-    <svg class="mtn mtn-far" data-depth="0.05" viewBox="0 0 1000 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="0,300 0,180 90,120 180,160 260,90 350,150 430,100 520,170 610,110 700,160 780,120 860,180 950,140 1000,190 1000,300" fill="#52709a"></polygon>
-    </svg>
-    <svg class="mtn mtn-mid" data-depth="0.09" viewBox="0 0 1000 260" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <polygon points="0,260 0,200 70,140 150,190 230,110 320,180 410,120 500,190 590,130 680,200 770,140 860,210 950,160 1000,200 1000,260" fill="#33496e"></polygon>
-      <polygon points="212,124 230,110 248,128 230,120" fill="#f4f8fc" opacity="0.55"></polygon>
-      <polygon points="580,142 590,130 602,146 590,138" fill="#f4f8fc" opacity="0.5"></polygon>
-    </svg>
+    <div class="photo-bg"></div>
+    <div class="scene-overlay"></div>
     <svg class="mtn mtn-near" data-depth="0.16" viewBox="0 0 1000 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <polygon points="0,220 0,190 60,130 140,170 220,90 310,160 400,70 480,150 560,80 650,160 730,100 820,170 900,130 970,180 1000,160 1000,220" fill="#17223b"></polygon>
       <polygon points="203,106 220,90 238,110 220,100" fill="#f4f8fc" opacity="0.9"></polygon>
@@ -240,7 +232,6 @@
       <polygon points="542,96 560,80 579,100 560,90" fill="#f4f8fc" opacity="0.9"></polygon>
       <polygon points="712,118 730,100 749,122 730,112" fill="#f4f8fc" opacity="0.8"></polygon>
     </svg>
-    <div class="snowfield"></div>
     <canvas id="snowCanvas" aria-hidden="true"></canvas>
   </div>
 
