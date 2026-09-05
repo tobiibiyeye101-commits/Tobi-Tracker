@@ -4,214 +4,181 @@
   <base target="_top">
   <meta charset="utf-8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Quicksand:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700&display=swap">
   <style>
     :root {
-      --sky-top: #ffd6ec;
-      --sky-mid: #eccdf7;
-      --sky-horizon: #cfe6ff;
-      --hill-far: #dcb9ee;
-      --hill-near: #ff93c6;
-      --ink: #5a2a4d;
-      --ink-soft: #935a83;
-      --ink-faint: #c093b3;
-      --card-bg: rgba(255, 255, 255, 0.74);
-      --card-border: rgba(255, 111, 178, 0.35);
-      --field-bg: rgba(255, 255, 255, 0.65);
-      --field-border: rgba(255, 111, 178, 0.4);
-      --accent: #ff5fa2;
-      --accent-strong: #ff2e87;
-      --gold: #ffc94d;
-      --focus-ring: #c9a3ff;
+      --bg: #131210;
+      --surface: #1b1916;
+      --surface-raised: #211e1a;
+      --ink: #f2ede4;
+      --ink-soft: #b6aa9c;
+      --ink-faint: #7c7164;
+      --border: rgba(242, 237, 228, 0.1);
+      --field-bg: rgba(242, 237, 228, 0.045);
+      --accent: #c9a463;
+      --accent-strong: #e2c084;
+      --focus-ring: #c9a463;
     }
     * { box-sizing: border-box; }
     html, body { overflow-x: hidden; }
     body {
-      font-family: "Quicksand", -apple-system, "Segoe UI", sans-serif;
+      font-family: "Manrope", -apple-system, "Segoe UI", sans-serif;
       color: var(--ink);
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(160deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-horizon) 100%);
-      background-attachment: fixed;
+      background: var(--bg);
     }
 
-    /* ---- the scene: fixed, decorative, behind everything ---- */
-    .scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-    .cloud {
-      position: absolute;
-      background: radial-gradient(closest-side, rgba(255,255,255,0.95), rgba(255,255,255,0));
-      border-radius: 50%;
-      filter: blur(1px);
-      animation: drift linear infinite;
-    }
-    .c1 { width: 260px; height: 90px; top: 8%;  left: -20%; animation-duration: 70s; opacity: 0.85; }
-    .c2 { width: 340px; height: 110px; top: 20%; left: -30%; animation-duration: 95s; animation-delay: -20s; opacity: 0.7; }
-    .c3 { width: 200px; height: 70px;  top: 34%; left: -15%; animation-duration: 60s; animation-delay: -40s; opacity: 0.8; }
-    @keyframes drift { from { transform: translateX(0); } to { transform: translateX(140vw); } }
+    /* ---- ambient backdrop: grain + two slow breathing glows, nothing
+       literal — restraint is the point. ---- */
+    .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .glow { position: absolute; border-radius: 50%; filter: blur(30px); animation: breathe 16s ease-in-out infinite; }
+    .glow-a { width: 520px; height: 520px; top: -12%; left: -14%; background: radial-gradient(circle, rgba(201,164,99,0.16), transparent 70%); }
+    .glow-b { width: 460px; height: 460px; bottom: -16%; right: -12%; background: radial-gradient(circle, rgba(201,164,99,0.1), transparent 70%); animation-direction: reverse; animation-duration: 20s; }
+    @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.16); opacity: 0.55; } }
+    .grain { position: fixed; inset: 0; z-index: 0; opacity: 0.035; mix-blend-mode: overlay; pointer-events: none; }
 
-    .scenery { position: absolute; left: -4%; bottom: 0; width: 108%; display: block; will-change: transform; }
-    .scenery-far { opacity: 0.9; }
-    #sparkleCanvas { position: absolute; inset: 0; }
-
-    /* ---- progress ribbon: today's overall % climbs a little heart ---- */
-    .climb-track {
-      position: fixed; right: 22px; bottom: 10vh; width: 4px; height: 54vh;
-      border-radius: 3px;
-      background: linear-gradient(to top, #ff9fce, #ffe1b0, #cbb6ff);
-      opacity: 0.65;
-      z-index: 2; pointer-events: none;
+    @media (prefers-reduced-motion: reduce) {
+      .glow { animation: none; }
     }
-    .climb-marker {
-      position: absolute; left: 50%; bottom: 0%; font-size: 22px;
-      transform: translate(-50%, 55%);
-      transition: bottom 0.7s cubic-bezier(.22,.9,.35,1);
-      filter: drop-shadow(0 0 6px rgba(255,255,255,0.85));
-    }
-    @media (max-width: 480px) { .climb-track { display: none; } }
 
     /* ---- content ---- */
-    .content { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; padding: 32px 16px 64px; }
+    .content { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; padding: 40px 20px 72px; }
     .eyebrow {
-      font-family: "Quicksand", sans-serif; font-size: 0.75rem; font-weight: 600;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);
+      font-family: "Manrope", sans-serif; font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint);
     }
     h1 {
-      font-family: "Fredoka", "Segoe UI", sans-serif; font-weight: 700;
-      font-size: 1.7rem; margin: 6px 0 2px; color: var(--accent-strong);
-      text-shadow: 0 2px 10px rgba(255,255,255,0.6);
+      font-family: "Bodoni Moda", Georgia, serif; font-weight: 600; font-style: italic;
+      font-size: 1.9rem; margin: 8px 0 4px; color: var(--ink);
+      letter-spacing: 0.005em;
     }
-    .sub { color: var(--ink-soft); margin-top: 2px; font-size: 0.92rem; }
+    .sub { color: var(--ink-soft); margin-top: 2px; font-size: 0.9rem; }
 
     .card {
-      background: var(--card-bg);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--card-border);
-      border-radius: 22px;
-      padding: 18px 20px;
-      margin-top: 16px;
-      box-shadow: 0 10px 26px rgba(255, 95, 162, 0.18);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-top: 14px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.28);
     }
     .card h2 {
-      font-family: "Fredoka", sans-serif; font-size: 1.02rem; font-weight: 600;
-      margin: 0 0 10px; color: var(--accent-strong);
+      font-family: "Manrope", sans-serif; font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      margin: 0 0 14px; color: var(--ink-faint);
     }
-    .card.reveal { opacity: 0; transform: translateY(18px) scale(0.98); transition: opacity 0.6s ease, transform 0.6s ease; }
-    .card.reveal.in-view { opacity: 1; transform: translateY(0) scale(1); }
+    .card.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.55s ease, transform 0.55s ease; }
+    .card.reveal.in-view { opacity: 1; transform: translateY(0); }
     @keyframes glowPulse {
-      0% { box-shadow: 0 10px 26px rgba(255,95,162,0.18), 0 0 0 rgba(255,46,135,0); }
-      35% { box-shadow: 0 10px 26px rgba(255,95,162,0.18), 0 0 30px rgba(255,46,135,0.55); }
-      100% { box-shadow: 0 10px 26px rgba(255,95,162,0.18), 0 0 0 rgba(255,46,135,0); }
+      0% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 rgba(201,164,99,0); }
+      35% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(201,164,99,0.5), 0 0 24px rgba(201,164,99,0.25); }
+      100% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 rgba(201,164,99,0); }
     }
-    .card.glow-pulse { animation: glowPulse 0.9s ease-out; }
+    .card.glow-pulse { animation: glowPulse 1s ease-out; }
 
-    label { display: block; font-size: 0.85rem; color: var(--ink-soft); margin-top: 10px; font-weight: 500; }
+    label { display: block; font-size: 0.82rem; color: var(--ink-soft); margin-top: 12px; }
     input[type=number], input[type=text], select {
-      width: 100%; padding: 9px 12px; border: 1.5px solid var(--field-border);
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
       background: var(--field-bg); color: var(--ink);
-      border-radius: 12px; font-size: 1rem; margin-top: 4px;
-      font-family: "Quicksand", sans-serif; font-weight: 500;
+      border-radius: 8px; font-size: 0.95rem; margin-top: 5px;
+      font-family: "Manrope", sans-serif;
     }
     input[type=number] { font-variant-numeric: tabular-nums; }
     input:focus, select:focus {
       outline: none; border-color: var(--focus-ring);
-      box-shadow: 0 0 0 3px rgba(201, 163, 255, 0.35);
+      box-shadow: 0 0 0 3px rgba(201, 164, 99, 0.18);
     }
     input::placeholder { color: var(--ink-faint); }
 
-    .row { display: flex; gap: 8px; }
+    .row { display: flex; gap: 10px; }
     .row > div { flex: 1; }
-    .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-    .check input { width: 19px; height: 19px; accent-color: var(--accent); }
+    .check { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .check input { width: 17px; height: 17px; accent-color: var(--accent); }
 
     button {
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #fff; font-weight: 700; font-family: "Fredoka", sans-serif;
-      border: none; border-radius: 999px; padding: 11px 20px; font-size: 0.95rem;
-      cursor: pointer; margin-top: 12px;
-      box-shadow: 0 4px 16px rgba(255, 46, 135, 0.35);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      background: var(--accent); color: #14120e; font-weight: 700;
+      font-family: "Manrope", sans-serif; letter-spacing: 0.01em;
+      border: none; border-radius: 8px; padding: 11px 18px; font-size: 0.88rem;
+      cursor: pointer; margin-top: 14px;
+      transition: background 0.15s ease, transform 0.15s ease;
     }
-    button:hover { transform: translateY(-1px) scale(1.02); box-shadow: 0 6px 20px rgba(255, 46, 135, 0.45); }
+    button:hover { background: var(--accent-strong); transform: translateY(-1px); }
     button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
     button.secondary {
-      background: rgba(255,255,255,0.55); color: var(--accent-strong);
-      box-shadow: none; border: 1.5px solid var(--card-border);
+      background: transparent; color: var(--ink-soft);
+      border: 1px solid var(--border);
     }
+    button.secondary:hover { background: rgba(242,237,228,0.05); color: var(--ink); }
 
-    .msg { font-weight: 700; color: var(--ink); }
-    .progress-bar { background: rgba(255,255,255,0.6); border-radius: 999px; height: 9px; overflow: hidden; margin-top: 6px; }
-    .progress-fill { background: linear-gradient(90deg, var(--accent), var(--gold)); height: 100%; transition: width 0.4s ease; border-radius: 999px; }
+    .msg { font-weight: 600; color: var(--ink); font-size: 1.02rem; }
+    .progress-bar { background: rgba(242,237,228,0.08); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { background: var(--accent); height: 100%; transition: width 0.4s ease; }
     .pill {
-      display: inline-block; background: rgba(255,95,162,0.16); color: var(--accent-strong);
-      border-radius: 999px; padding: 3px 12px; font-size: 0.75rem; font-weight: 700;
+      display: inline-block; background: transparent; color: var(--ink-faint);
+      border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px;
+      font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 8px; font-variant-numeric: tabular-nums; }
-    th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid rgba(255,111,178,0.2); color: var(--ink-soft); }
-    th { color: var(--ink-faint); font-weight: 600; }
-    #status { font-size: 0.85rem; color: var(--accent-strong); margin-top: 8px; min-height: 1.2em; transition: opacity 0.3s; font-weight: 600; }
-    #loading { text-align: center; padding: 40px; color: var(--ink-soft); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--border); color: var(--ink-soft); }
+    th { color: var(--ink-faint); font-weight: 600; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    #status { font-size: 0.82rem; color: var(--ink-faint); margin-top: 10px; min-height: 1.2em; transition: opacity 0.3s; }
+    #loading { text-align: center; padding: 48px; color: var(--ink-faint); font-size: 0.85rem; letter-spacing: 0.04em; }
 
-    #progressCard .progress-bar { height: 16px; }
-    #overallPct {
-      font-family: "Fredoka", sans-serif; font-size: 2.2rem; font-weight: 700;
-      color: var(--accent-strong); text-shadow: 0 0 16px rgba(255,201,77,0.4);
+    /* ---- today's progress ring ---- */
+    .ring-wrap { position: relative; width: 136px; height: 136px; margin: 4px auto 14px; }
+    .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring-track { fill: none; stroke: rgba(242,237,228,0.08); stroke-width: 6; }
+    .ring-fill {
+      fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round;
+      stroke-dasharray: 326.7; stroke-dashoffset: 326.7;
+      transition: stroke-dashoffset 0.6s ease;
     }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .chip { background: rgba(255,255,255,0.55); color: var(--ink-soft); border-radius: 999px; padding: 4px 11px; font-size: 0.78rem; font-weight: 600; }
-    .chip.done { background: linear-gradient(135deg, var(--accent), var(--gold)); color: #fff; }
+    .ring-center {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #overallPct { font-family: "Bodoni Moda", serif; font-size: 1.9rem; font-weight: 600; color: var(--ink); }
+    .ring-label { font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-top: 2px; }
 
-    /* ---- burst micro-interaction ---- */
-    .burst-flake {
-      position: absolute; pointer-events: none; font-size: 15px; z-index: 50;
-      animation: burst 0.9s ease-out forwards;
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-top: 4px; }
+    .chip {
+      background: transparent; color: var(--ink-faint); border: 1px solid var(--border);
+      border-radius: 999px; padding: 4px 11px; font-size: 0.72rem; letter-spacing: 0.02em;
     }
-    @keyframes burst {
-      0% { transform: translate(0,0) scale(0.5) rotate(0deg); opacity: 1; }
-      100% { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(45deg); opacity: 0; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .card.reveal { opacity: 1; transform: none; transition: none; }
-      .climb-marker { transition: none; }
-      .cloud { animation: none; }
-    }
+    .chip.done { border-color: var(--accent); color: var(--accent-strong); }
   </style>
 </head>
 <body>
 
-  <div class="scene" aria-hidden="true">
-    <div class="cloud c1"></div>
-    <div class="cloud c2"></div>
-    <div class="cloud c3"></div>
-    <svg class="scenery scenery-far" data-depth="0.06" viewBox="0 0 1000 200" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,200 L0,140 C100,110 180,160 280,130 C380,100 460,150 560,120 C660,90 740,140 840,110 C900,95 950,120 1000,110 L1000,200 Z" fill="#dcb9ee"></path>
-    </svg>
-    <svg class="scenery scenery-near" data-depth="0.12" viewBox="0 0 1000 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,150 L0,110 C90,90 160,120 260,100 C360,80 430,115 530,95 C630,75 700,110 800,90 C880,75 940,95 1000,85 L1000,150 Z" fill="#ff93c6"></path>
-      <circle cx="150" cy="97" r="5" fill="#fff6d8"></circle>
-      <circle cx="150" cy="97" r="2" fill="#ffc94d"></circle>
-      <circle cx="470" cy="92" r="5" fill="#fff6d8"></circle>
-      <circle cx="470" cy="92" r="2" fill="#ffc94d"></circle>
-      <circle cx="760" cy="87" r="5" fill="#fff6d8"></circle>
-      <circle cx="760" cy="87" r="2" fill="#ffc94d"></circle>
-    </svg>
-    <canvas id="sparkleCanvas" aria-hidden="true"></canvas>
+  <div class="ambient" aria-hidden="true">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
   </div>
-
-  <div class="climb-track" aria-hidden="true"><div class="climb-marker" id="climbMarker">💖</div></div>
+  <svg class="grain" aria-hidden="true">
+    <filter id="grainFilter"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"></feTurbulence></filter>
+    <rect width="100%" height="100%" filter="url(#grainFilter)"></rect>
+  </svg>
 
   <div class="content">
     <div class="eyebrow" id="dateLabel">Loading…</div>
-    <h1>✨ Spiritual Progress Tracker ✨</h1>
+    <h1>Spiritual Progress Tracker</h1>
     <div class="sub" id="windowLabel"></div>
     <div id="loading">Loading today's data…</div>
     <div id="app" style="display:none;">
 
-      <div class="card" id="progressCard">
-        <h2>💗 Today's Progress</h2>
-        <span id="overallPct">0%</span>
-        <div class="progress-bar"><div class="progress-fill" id="overallFill" style="width:0%;"></div></div>
+      <div class="card" id="progressCard" style="text-align:center;">
+        <h2>Today's Progress</h2>
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 120 120">
+            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fill" id="ringFill" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="ring-center">
+            <span id="overallPct">0%</span>
+            <span class="ring-label">today</span>
+          </div>
+        </div>
         <div class="chips" id="chipRow"></div>
       </div>
 
@@ -227,7 +194,7 @@
       <div class="card">
         <h2>Second Batch — Current Message</h2>
         <span class="pill" id="set2Pill"></span>
-        <div class="msg" id="set2Message" style="margin-top:6px;"></div>
+        <div class="msg" id="set2Message" style="margin-top:8px;"></div>
         <label>Minutes listened today</label>
         <input type="number" id="set2Minutes" min="0">
         <label>Notes</label>
@@ -271,7 +238,7 @@
       <div class="card">
         <h2>Prayer — <span id="phaseLabel"></span></h2>
         <div class="progress-bar"><div class="progress-fill" id="prayerBar" style="width:0%;"></div></div>
-        <div class="sub" id="prayerSummary" style="margin-top:6px;"></div>
+        <div class="sub" id="prayerSummary" style="margin-top:8px;"></div>
 
         <label>Morning (<span id="tMorning"></span> min target)</label>
         <input type="number" id="pMorning" min="0">
@@ -297,7 +264,7 @@
         <h2>Notes</h2>
         <input type="text" id="dayNotes" placeholder="anything worth remembering about today">
         <button onclick="saveAll()">Save now</button>
-        <div id="status">Everything above saves automatically as you go 💫</div>
+        <div id="status">Everything above saves automatically as you go.</div>
       </div>
 
       <div class="card">
@@ -318,6 +285,7 @@
     var AUTOSAVE_DEBOUNCE_MS = 800;
     var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var revealInitialized = false;
+    var RING_CIRCUMFERENCE = 2 * Math.PI * 52;
 
     function load() {
       google.script.run.withSuccessHandler(onLoaded).clientGetToday();
@@ -416,10 +384,8 @@
       var overall = Math.round(sum / parts.length);
 
       document.getElementById('overallPct').textContent = overall + '%';
-      document.getElementById('overallFill').style.width = overall + '%';
-
-      var marker = document.getElementById('climbMarker');
-      if (marker) marker.style.bottom = overall + '%';
+      var ringFill = document.getElementById('ringFill');
+      if (ringFill) ringFill.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - overall / 100);
 
       var chipRow = document.getElementById('chipRow');
       chipRow.innerHTML = '';
@@ -455,7 +421,7 @@
         .withSuccessHandler(function (ctx) {
           latest = ctx; // keep targets etc. current without re-touching form fields the user is mid-edit on
           saving = false;
-          statusEl.textContent = 'Saved ✓ · ' + new Date().toLocaleTimeString();
+          statusEl.textContent = 'Saved · ' + new Date().toLocaleTimeString();
           google.script.run.withSuccessHandler(onHistory).clientGetHistory(14);
           if (dirtyWhileSaving) { dirtyWhileSaving = false; scheduleAutosave(); }
         })
@@ -495,8 +461,8 @@
       tbody.innerHTML = '';
       rows.forEach(function (r) {
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td>' + r.date + '</td><td>' + (r.set1Done === 'Yes' ? '✅' : '—') + '</td>' +
-          '<td>' + (r.set2Minutes || 0) + '</td><td>' + (r.rhapsodyDone === 'Yes' ? '✅' : '—') + '</td>' +
+        tr.innerHTML = '<td>' + r.date + '</td><td>' + (r.set1Done === 'Yes' ? '✓' : '—') + '</td>' +
+          '<td>' + (r.set2Minutes || 0) + '</td><td>' + (r.rhapsodyDone === 'Yes' ? '✓' : '—') + '</td>' +
           '<td>' + (r.prayerTotal || 0) + '/' + (r.prayerTarget || 0) + '</td>';
         tbody.appendChild(tr);
       });
@@ -540,30 +506,8 @@
       google.script.run.withSuccessHandler(onLoaded).clientSetBiblePointer(m, w, d);
     }
 
-    // ======================================================================
-    // Scene: parallax hills, twinkling sparkles, scroll reveal, and a
-    // heart/sparkle burst when a box gets checked. Purely decorative/
-    // additive — none of this touches the data flow above.
-    // ======================================================================
-
-    function initParallax() {
-      if (reducedMotion) return;
-      var layers = document.querySelectorAll('.scenery');
-      var ticking = false;
-      window.addEventListener('scroll', function () {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(function () {
-          var y = window.scrollY;
-          layers.forEach(function (el) {
-            var depth = parseFloat(el.getAttribute('data-depth')) || 0;
-            el.style.transform = 'translateY(' + (-y * depth) + 'px)';
-          });
-          ticking = false;
-        });
-      }, { passive: true });
-    }
-
+    // ---- Scroll reveal + a restrained completion cue (a quiet gold outline
+    // pulse on the card, nothing more) — decorative/additive only. --------
     function initReveal() {
       if (reducedMotion || !('IntersectionObserver' in window)) return;
       var cards = document.querySelectorAll('#app .card');
@@ -579,102 +523,24 @@
       cards.forEach(function (c) { io.observe(c); });
     }
 
-    function initSparkle() {
-      var canvas = document.getElementById('sparkleCanvas');
-      if (!canvas) return;
-      var ctx = canvas.getContext('2d');
-      var bits = [];
-      var count = reducedMotion ? 0 : 40;
-      var colors = ['255,255,255', '255,201,77', '255,159,206'];
-
-      function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
-      resize();
-      window.addEventListener('resize', resize);
-
-      for (var i = 0; i < count; i++) {
-        bits.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          r: 1 + Math.random() * 2,
-          rise: 0.15 + Math.random() * 0.35,
-          drift: (Math.random() - 0.5) * 0.4,
-          color: colors[i % colors.length],
-          phase: Math.random() * Math.PI * 2,
-          speed: 0.02 + Math.random() * 0.03
-        });
-      }
-
-      var running = document.visibilityState === 'visible';
-      document.addEventListener('visibilitychange', function () {
-        var wasRunning = running;
-        running = document.visibilityState === 'visible';
-        if (running && !wasRunning) requestAnimationFrame(tick);
-      });
-
-      function tick() {
-        if (!running) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        bits.forEach(function (b) {
-          b.y -= b.rise;
-          b.x += b.drift;
-          b.phase += b.speed;
-          if (b.y < -4) { b.y = canvas.height + 4; b.x = Math.random() * canvas.width; }
-          if (b.x > canvas.width) b.x = 0;
-          if (b.x < 0) b.x = canvas.width;
-          var twinkle = 0.35 + 0.4 * (0.5 + 0.5 * Math.sin(b.phase));
-          ctx.beginPath();
-          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(' + b.color + ',' + twinkle + ')';
-          ctx.fill();
-        });
-        requestAnimationFrame(tick);
-      }
-      if (count > 0 && running) requestAnimationFrame(tick);
-    }
-
-    var BURST_EMOJI = ['💖', '✨', '🌸', '⭐', '💕'];
-
-    function spawnHeartBurst(x, y) {
-      for (var i = 0; i < 8; i++) {
-        var flake = document.createElement('span');
-        flake.className = 'burst-flake';
-        flake.textContent = BURST_EMOJI[i % BURST_EMOJI.length];
-        var angle = (Math.PI * 2 * i) / 8 + Math.random() * 0.5;
-        var dist = 26 + Math.random() * 30;
-        flake.style.left = x + 'px';
-        flake.style.top = y + 'px';
-        flake.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
-        flake.style.setProperty('--dy', (Math.sin(angle) * dist - 22) + 'px');
-        document.body.appendChild(flake);
-        flake.addEventListener('animationend', function () { this.remove(); });
-      }
-    }
-
-    function wireCelebrations() {
+    function wireCompletionCue() {
       if (reducedMotion) return;
       ['set1Done', 'rhapsodyDone', 'bibleDone'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         el.addEventListener('change', function () {
           if (!el.checked) return;
-          var rect = el.getBoundingClientRect();
-          spawnHeartBurst(rect.left + rect.width / 2, rect.top + window.scrollY);
           var card = el.closest('.card');
           if (card) {
             card.classList.add('glow-pulse');
-            setTimeout(function () { card.classList.remove('glow-pulse'); }, 900);
+            setTimeout(function () { card.classList.remove('glow-pulse'); }, 1000);
           }
         });
       });
     }
 
-    initParallax();
-    initSparkle();
     wireAutosave();
-    wireCelebrations();
+    wireCompletionCue();
     load();
   </script>
 </body>
