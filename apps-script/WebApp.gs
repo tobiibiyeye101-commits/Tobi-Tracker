@@ -59,3 +59,11 @@ function clientDeleteTodo(id) {
 function clientSaveGym(workout, done) {
   return saveGymLog(workout, done);
 }
+
+function clientGetCalendar() {
+  return getCalendarSummaryForToday();
+}
+
+function clientSyncCalendar() {
+  return syncTodayToCalendar();
+}

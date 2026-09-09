@@ -72,6 +72,23 @@ var SHORT_MORNING_MINUTES = 30;
 // ---- Reminder copy ----------------------------------------------------------
 var WEBAPP_URL_PROPERTY_KEY = 'WEBAPP_URL'; // set once via setWebAppUrl(), see README
 
+// ---- Calendar sync ------------------------------------------------------------
+// Start times for the tracker's genuinely time-boxed commitments — prayer
+// blocks with a real duration, plus Gym. Campus prayer is deliberately left
+// out: it's explicitly unscheduled, gap-filler time, not a calendar block.
+// Durations come from getPrayerTargetsForDate_() in DataService.gs (which
+// already knows Morning/Evening/Friday/Saturday minutes per day) — only the
+// *start* clock-times are configured here, since the sheet only ever stores
+// how many minutes, never when.
+var MORNING_PRAYER_START = { hour: 7, minute: 0 };
+var EVENING_PRAYER_START = { hour: 18, minute: 0 };  // also used for Friday/Saturday night start
+var GYM_BLOCK = { hour: 17, minute: 30, durationMinutes: 60 };
+
+// Every event this project creates gets this prefix, so syncTodayToCalendar()
+// can find and update its own past events instead of creating duplicates,
+// and so they're visually obvious as tracker-generated on your calendar.
+var CALENDAR_EVENT_PREFIX = '🕊️ ';
+
 // ---- Small date helpers used across the project ---------------------------
 function todayDate_() {
   return new Date();

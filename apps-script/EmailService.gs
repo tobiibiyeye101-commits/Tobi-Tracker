@@ -12,12 +12,16 @@ function createTriggers() {
   ScriptApp.newTrigger('sendMorningEmail').timeBased().everyDays(1).atHour(7).nearMinute(0).create();
   ScriptApp.newTrigger('sendMiddayEmail').timeBased().everyDays(1).atHour(13).nearMinute(0).create();
   ScriptApp.newTrigger('sendEveningEmail').timeBased().everyDays(1).atHour(18).nearMinute(0).create();
-  Logger.log('Triggers created: 7am, 1pm, 6pm daily.');
+  // Runs before the 7am email so today's prayer/gym blocks are already on
+  // the calendar by the time that reminder lands.
+  ScriptApp.newTrigger('syncTodayToCalendar').timeBased().everyDays(1).atHour(6).nearMinute(30).create();
+  Logger.log('Triggers created: calendar sync 6:30am, emails 7am/1pm/6pm daily.');
 }
 
 function deleteTriggers() {
+  var handled = ['sendMorningEmail', 'sendMiddayEmail', 'sendEveningEmail', 'syncTodayToCalendar'];
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (['sendMorningEmail', 'sendMiddayEmail', 'sendEveningEmail'].indexOf(t.getHandlerFunction()) !== -1) {
+    if (handled.indexOf(t.getHandlerFunction()) !== -1) {
       ScriptApp.deleteTrigger(t);
     }
   });

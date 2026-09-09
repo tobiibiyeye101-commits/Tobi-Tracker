@@ -18,13 +18,18 @@ uses 3.
 | **Set 2** | The 23 longer messages (This Is It, Stair Summit, Coordinators Training, Money Game series, etc.), tracked as a single "current message" pointer you advance yourself as you finish each one — not date-driven. |
 | **Read Rhapsody** | A daily done checkbox + notes, logged before the Bible reading plan each day. |
 | **Bible reading plan** | You enter Month / Week / Day directly; everything before your current entry is implicitly done. |
-| **Prayer** | 5 components — Morning (1h), Evening (1h), Friday Night (fixed, 3h, already established), Saturday Night (fixed, 2h), Campus prayer/prophesying (10min, unscheduled, fills gaps). Flat targets from day one — no ramp. See `PRAYER_PHASES` in `apps-script/Config.gs` to change any of it. |
+| **Prayer** | 5 components — Morning (1h, 30min Fri/Sat), Evening (1h), Friday Night (fixed, 3h, already established), Saturday Night (fixed, 2h), Campus prayer/prophesying (10min, unscheduled, fills gaps). Flat targets from day one — no ramp. See `PRAYER_PHASES` in `apps-script/Config.gs` to change any of it. |
+| **To-Do List** | Its own tab, fully editable both ways — add/check/edit/delete from the app, or edit rows directly in the `ToDo_List` sheet. |
+| **Prayer Points** | Content-only, edited in the `Prayer_Points` sheet — the app shows 2 per day on a rotation through the list. |
+| **Gym** | One row per day (like Daily_Log) — a free-text "today's set" plus a Done checkbox, since the split just varies by what you type. |
+| **Calendar** | Pushes today's real time-boxed commitments (prayer blocks + Gym, if logged) onto your default Google Calendar, shows what else is on it today, and flags overlaps. See "Calendar sync" below. |
 
 ## One-time setup (~10 minutes)
 
 1. **Create the project.** Go to [script.google.com](https://script.google.com) → New project.
 2. **Copy in the files.** For each file in `apps-script/` (`Config.gs`, `SheetSetup.gs`,
-   `DataService.gs`, `EmailService.gs`, `WebApp.gs`, `Index.html`, `appsscript.json`):
+   `DataService.gs`, `EmailService.gs`, `CalendarService.gs`, `WebApp.gs`, `Index.html`,
+   `appsscript.json`):
    - In the Apps Script editor, click the **+** next to Files → **Script** (for `.gs` files)
      or **HTML** (for `Index.html`) → name it to match (drop the `.gs` extension when naming).
    - Paste the file's contents in.
@@ -36,10 +41,13 @@ uses 3.
 
 3. **Run setup.** In the function dropdown at the top, select `setup`, click **Run**.
    The first run will ask you to authorize the script (it needs access to Sheets, Gmail,
-   and to create files in your Drive) — click through the "Google hasn't verified this app"
-   warning (Advanced → Go to [project name]) since this is your own script. Check the
-   execution log for the new spreadsheet's URL — that's your data store,
+   Calendar, and to create files in your Drive) — click through the "Google hasn't verified
+   this app" warning (Advanced → Go to [project name]) since this is your own script. Check
+   the execution log for the new spreadsheet's URL — that's your data store,
    **"Tobi Spiritual Progress Tracker"**, now in your Drive.
+   (If you'd already authorized this project before Calendar sync existed, Google will show
+   you a fresh consent screen the first time anything touches `CalendarApp` — same click-through,
+   just for the added Calendar scope.)
 4. **Deploy the web app.** Deploy → New deployment → type: **Web app**.
    - Execute as: **Me**
    - Who has access: **Only myself**
@@ -50,10 +58,28 @@ uses 3.
    `function _setUrl(){ setWebAppUrl('PASTE_YOUR_URL_HERE'); }`, run `_setUrl` once, then
    delete it. This makes the reminder emails link straight to your logging page.
 6. **Create the triggers.** Select `createTriggers`, click **Run**. This schedules the
-   7am / 1pm / 6pm emails. (Re-running it is safe — it clears and recreates them, so use
-   it if you ever change the times in `EmailService.gs`.)
+   6:30am calendar sync and the 7am / 1pm / 6pm emails. (Re-running it is safe — it clears
+   and recreates them, so use it if you ever change the times in `EmailService.gs`.)
 7. **Bookmark the web app URL** from step 4 on your phone's home screen — that's your
    logging page all the way through Oct 31.
+
+## Calendar sync
+
+Pushes onto your **default Google Calendar** (the one tied to whichever account runs the
+script) via `CalendarService.gs` — no API key, no separate calendar to create. Only the
+genuinely time-boxed things get pushed: Morning Prayer, Evening/Friday-night/Saturday-night
+Prayer, and Gym. Campus prayer, Set 1/2, Rhapsody, and Bible reading are deliberately left
+out — none of those have a real duration or fixed slot.
+
+- **Automatic**: the 6:30am trigger pushes today's blocks before the 7am reminder email.
+- **Manual**: hit **Sync to Calendar** on the Calendar tab any time — safe to click
+  repeatedly, it updates the same events rather than creating duplicates.
+- **Gym is opt-in per day**: it only gets pushed once you've actually typed something into
+  the Gym tab that day (or checked Done) — an untouched day doesn't get a block.
+- **Conflicts**: if a pushed block overlaps something already on your calendar, the
+  Calendar tab flags it (⚠) rather than silently double-booking.
+- Start times (`MORNING_PRAYER_START`, `EVENING_PRAYER_START`, `GYM_BLOCK`) live in
+  `apps-script/Config.gs` — durations come from the same prayer targets as everywhere else.
 
 ## Using it day to day
 

@@ -29,13 +29,20 @@ Google Sheet ("Tobi Spiritual Progress Tracker")
  └─ Gym_Log          — one row per calendar day: Date | Day | Workout | Done | Last Updated
 
 Apps Script project (bound to that Sheet)
- ├─ Config.gs        — all constants: dates, message lists, prayer targets
+ ├─ Config.gs         — all constants: dates, message lists, prayer targets
  ├─ SheetSetup.gs     — creates/migrates/self-heals the tabs above
- ├─ DataService.gs   — all reads/writes to the Sheet + the pure-logic rules
- ├─ EmailService.gs  — builds and sends the three daily reminder emails
- ├─ WebApp.gs        — doGet() entry point + the functions the page can call
- └─ Index.html       — the logging page itself (served by WebApp.gs)
+ ├─ DataService.gs    — all reads/writes to the Sheet + the pure-logic rules
+ ├─ EmailService.gs   — builds/sends the 3 daily emails, owns all triggers
+ ├─ CalendarService.gs — pushes prayer/Gym blocks to CalendarApp, reads
+ │                        today's other events, flags overlaps
+ ├─ WebApp.gs         — doGet() entry point + the functions the page can call
+ └─ Index.html        — the tabbed logging page itself (served by WebApp.gs)
 ```
+
+Note: `CalendarService.gs` is the one file that reaches outside this Sheet
+entirely — it talks to `CalendarApp` (your default Google Calendar), not to
+any tab above. Everything it needs (prayer targets, today's Gym row) it
+still gets by calling into `DataService.gs`, same as everything else.
 
 Everything both the emails and the web page show is derived from one function,
 `getTodayContext()` in `DataService.gs`. It is the single source of truth for
