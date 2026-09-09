@@ -95,7 +95,7 @@
     .card.glow-pulse { animation: glowPulse 1s ease-out; }
 
     label { display: block; font-size: 0.82rem; color: var(--ink-soft); margin-top: 12px; }
-    input[type=number], input[type=text], select {
+    input[type=number], input[type=text], input[type=date], select {
       width: 100%; padding: 10px 12px; border: 1px solid var(--border);
       background: var(--field-bg); color: var(--ink);
       border-radius: 8px; font-size: 0.95rem; margin-top: 5px;
@@ -229,7 +229,6 @@
       <div class="tabs" role="tablist">
         <button class="tab-btn active" data-tab="tracker" role="tab" aria-selected="true">Tracker</button>
         <button class="tab-btn" data-tab="todo" role="tab" aria-selected="false">To-Do</button>
-        <button class="tab-btn" data-tab="prayer" role="tab" aria-selected="false">Prayer Points</button>
         <button class="tab-btn" data-tab="gym" role="tab" aria-selected="false">Gym</button>
         <button class="tab-btn" data-tab="calendar" role="tab" aria-selected="false">Calendar</button>
       </div>
@@ -330,6 +329,12 @@
       </div>
 
       <div class="card">
+        <h2>Prayer Points — <span id="prayerPointsLabel">today's two</span></h2>
+        <div id="prayerPointsList"></div>
+        <div class="sub" style="margin-top:10px;">Edit this list any time in the Prayer_Points sheet.</div>
+      </div>
+
+      <div class="card">
         <h2>Notes</h2>
         <input type="text" id="dayNotes" placeholder="anything worth remembering about today">
         <button onclick="saveAll()">Save now</button>
@@ -358,13 +363,6 @@
         </div>
       </div>
 
-      <div class="tab-panel" data-tab-panel="prayer" hidden>
-        <div class="card">
-          <h2>Prayer Points — <span id="prayerPointsLabel">today's two</span></h2>
-          <div id="prayerPointsList"></div>
-          <div class="sub" style="margin-top:10px;">Edit this list any time in the Prayer_Points sheet.</div>
-        </div>
-      </div>
 
       <div class="tab-panel" data-tab-panel="gym" hidden>
         <div class="card">
@@ -388,6 +386,18 @@
         <div class="card">
           <h2>Everything Else Today</h2>
           <div id="calendarEvents"></div>
+        </div>
+
+        <div class="card">
+          <h2>Add an Event</h2>
+          <label>Date</label>
+          <input type="date" id="newEventDate">
+          <label>Title</label>
+          <input type="text" id="newEventTitle" placeholder="Event title">
+          <label>Description</label>
+          <input type="text" id="newEventDescription" placeholder="optional">
+          <button class="secondary" onclick="addCalendarEvent()">Add Event</button>
+          <div id="addEventStatus" class="sub" style="margin-top:8px;"></div>
         </div>
       </div>
 
@@ -823,6 +833,37 @@
         row.innerHTML = '<span class="num">' + e.start + '</span><span>' + e.title + '</span>';
         eventsWrap.appendChild(row);
       });
+
+      // Default the "Add an Event" date to today, but only if it's still
+      // empty — a re-render (after syncing or adding an event) shouldn't
+      // wipe out a different date the person already picked.
+      var dateInput = document.getElementById('newEventDate');
+      if (dateInput && !dateInput.value) dateInput.value = summary.dateStr;
+    }
+
+    function addCalendarEvent() {
+      var dateInput = document.getElementById('newEventDate');
+      var titleInput = document.getElementById('newEventTitle');
+      var descInput = document.getElementById('newEventDescription');
+      var statusEl = document.getElementById('addEventStatus');
+
+      if (!dateInput.value || !titleInput.value.trim()) {
+        statusEl.textContent = 'Date and title are both required.';
+        return;
+      }
+
+      statusEl.textContent = 'Adding…';
+      google.script.run
+        .withSuccessHandler(function (summary) {
+          statusEl.textContent = 'Added ✓';
+          titleInput.value = '';
+          descInput.value = '';
+          renderCalendar(summary);
+        })
+        .withFailureHandler(function (err) {
+          statusEl.textContent = 'Could not add event (' + err.message + ')';
+        })
+        .clientAddCalendarEvent(dateInput.value, titleInput.value.trim(), descInput.value);
     }
 
     function syncCalendar() {

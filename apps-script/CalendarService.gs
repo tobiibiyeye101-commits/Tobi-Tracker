@@ -139,10 +139,26 @@ function getCalendarSummaryForToday() {
   });
 
   return {
+    dateStr: dateKey_(date),
     dayName: Utilities.formatDate(date, Session.getScriptTimeZone(), 'EEEE, MMMM d'),
     blocks: plannedBlocks,
     events: events.map(function (e) {
       return { title: e.title, start: e.start, end: e.end, isTracker: e.isTracker };
     })
   };
+}
+
+/**
+ * Manually adds an all-day event to any date, from the app's "Add an Event"
+ * form — separate from the auto-pushed prayer/Gym blocks above. Returns
+ * today's summary either way, since that's what the Calendar tab is showing
+ * (adding an event for a different day won't visibly change it, and that's
+ * fine — the new event still exists on the calendar for that day).
+ */
+function createCalendarEvent(dateStr, title, description) {
+  title = String(title || '').trim();
+  if (!dateStr || !title) return getCalendarSummaryForToday();
+  var date = parseDate_(dateStr);
+  CalendarApp.getDefaultCalendar().createAllDayEvent(title, date, { description: description || '' });
+  return getCalendarSummaryForToday();
 }

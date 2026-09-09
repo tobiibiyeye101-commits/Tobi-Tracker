@@ -67,3 +67,7 @@ function clientGetCalendar() {
 function clientSyncCalendar() {
   return syncTodayToCalendar();
 }
+
+function clientAddCalendarEvent(dateStr, title, description) {
+  return createCalendarEvent(dateStr, title, description);
+}
