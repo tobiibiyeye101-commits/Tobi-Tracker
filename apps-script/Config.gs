@@ -78,6 +78,17 @@ var FRIDAY_NIGHT_MINUTES = 180; // 3 hours — already established, not part of 
 // so Morning trims down to 30 minutes instead of the usual 60.
 var SHORT_MORNING_MINUTES = 30;
 
+// ---- School calendar (optional) --------------------------------------------
+// Leave blank to only read your default Google Calendar, same as before. If
+// your class schedule lives on a separate school Google account: in that
+// account, share the class-schedule calendar with the account running this
+// script (view access is enough — Google Calendar > Settings and sharing >
+// Share with specific people), then paste its Calendar ID here (same
+// Settings page, "Integrate calendar" > Calendar ID — usually an email
+// address for a personal calendar, or a long id@group.calendar.google.com
+// for a secondary one). The Calendar tab then shows events from both.
+var SCHOOL_CALENDAR_ID = '';
+
 // ---- Reminder copy ----------------------------------------------------------
 var WEBAPP_URL_PROPERTY_KEY = 'WEBAPP_URL'; // set once via setWebAppUrl(), see README
 

@@ -40,12 +40,16 @@ Apps Script project (bound to that Sheet)
 ```
 
 Note: `CalendarService.gs` is the one file that reaches outside this Sheet
-entirely — it talks to `CalendarApp` (your default Google Calendar). It's
-read-mostly and manual-write-only: it shows today's events and lets the
-Calendar tab create a new all-day event on any date, but nothing in this
-project auto-pushes tracker data onto the calendar. (An earlier version did
-— it pushed prayer/Gym blocks automatically and flagged conflicts — but that
-was removed by request. `CalendarApp` still needs the Calendar authorization
+entirely — it talks to `CalendarApp` (your default Google Calendar, plus an
+optional second one via `SCHOOL_CALENDAR_ID` in `Config.gs` — see README's
+Calendar section for the sharing steps). It's read-mostly and
+manual-write-only: it shows today's events (merged and labeled by source
+when a second calendar is configured) and lets the Calendar tab create a new
+all-day event on any date — always on the default calendar, since the
+second one is only ever read through a share — but nothing in this project
+auto-pushes tracker data onto the calendar. (An earlier version did — it
+pushed prayer/Gym blocks automatically and flagged conflicts — but that was
+removed by request. `CalendarApp` still needs the Calendar authorization
 scope for the read/create it still does.)
 
 Everything both the emails and the web page show is derived from one function,

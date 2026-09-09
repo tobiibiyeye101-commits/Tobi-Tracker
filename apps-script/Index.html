@@ -842,13 +842,27 @@
     function renderCalendar(summary) {
       var eventsWrap = document.getElementById('calendarEvents');
       eventsWrap.innerHTML = '';
-      if (!summary.events.length) {
-        eventsWrap.innerHTML = '<div class="todo-empty">Nothing on your calendar today.</div>';
+
+      if (summary.schoolError) {
+        var errRow = document.createElement('div');
+        errRow.className = 'sub';
+        errRow.style.marginBottom = '8px';
+        errRow.textContent = summary.schoolError;
+        eventsWrap.appendChild(errRow);
       }
+
+      if (!summary.events.length) {
+        eventsWrap.innerHTML += '<div class="todo-empty">Nothing on your calendar today.</div>';
+      }
+      // Only bother labeling which calendar an event came from once there's
+      // more than one source in play — with just the default calendar, a
+      // "You" tag on every row would just be noise.
+      var multiSource = summary.events.some(function (e) { return e.source && e.source !== summary.events[0].source; });
       summary.events.forEach(function (e) {
         var row = document.createElement('div');
         row.className = 'prayer-point';
-        row.innerHTML = '<span class="num">' + e.start + '</span><span>' + e.title + '</span>';
+        var label = (multiSource && e.source) ? ' <span class="pill" style="margin-left:6px;">' + e.source + '</span>' : '';
+        row.innerHTML = '<span class="num">' + e.start + '</span><span>' + e.title + label + '</span>';
         eventsWrap.appendChild(row);
       });
 

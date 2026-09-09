@@ -71,6 +71,16 @@ read-mostly: the Calendar tab shows today's events, and "Add an Event" lets you 
 new all-day event (any date, title, optional description). Nothing here auto-pushes
 anything onto your calendar — that's a deliberate choice, not a limitation.
 
+**A second calendar (e.g. a school class schedule on a different Google account)** can be
+read alongside your default one — set `SCHOOL_CALENDAR_ID` in `apps-script/Config.gs`.
+In the school account, share that calendar with the account running this script (view
+access is enough: Google Calendar → ⋮ next to the calendar → Settings and sharing →
+Share with specific people), then copy its Calendar ID from the same settings page
+("Integrate calendar" → Calendar ID) into `SCHOOL_CALENDAR_ID`. Once set, the Calendar tab
+merges events from both and labels each with a small "You"/"School" pill. New events from
+"Add an Event" still always go to your default calendar — the school one stays read-only,
+matching the share.
+
 ## Using it day to day
 
 - Open the web app link (from the morning email, or your bookmark).
