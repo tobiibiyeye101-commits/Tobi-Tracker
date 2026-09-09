@@ -55,6 +55,23 @@
     }
     .sub { color: var(--ink-soft); margin-top: 2px; font-size: 0.9rem; }
 
+    /* ---- tabs ---- */
+    .tabs {
+      display: flex; gap: 4px; margin-top: 20px; padding: 4px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      position: sticky; top: 12px; z-index: 5;
+    }
+    .tab-btn {
+      flex: 1; background: transparent; color: var(--ink-faint); border: none;
+      border-radius: 7px; padding: 9px 6px; font-size: 0.76rem; font-weight: 600;
+      font-family: "Manrope", sans-serif; letter-spacing: 0.01em; cursor: pointer;
+      margin-top: 0; transition: background 0.15s ease, color 0.15s ease;
+    }
+    .tab-btn:hover { color: var(--ink); }
+    .tab-btn.active { background: var(--accent); color: #14120e; }
+    .tab-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+    .tab-panel[hidden] { display: none; }
+
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -209,6 +226,15 @@
     <div id="loading">Loading today's data…</div>
     <div id="app" style="display:none;">
 
+      <div class="tabs" role="tablist">
+        <button class="tab-btn active" data-tab="tracker" role="tab" aria-selected="true">Tracker</button>
+        <button class="tab-btn" data-tab="todo" role="tab" aria-selected="false">To-Do</button>
+        <button class="tab-btn" data-tab="prayer" role="tab" aria-selected="false">Prayer Points</button>
+        <button class="tab-btn" data-tab="gym" role="tab" aria-selected="false">Gym</button>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="tracker">
+
       <div class="card" id="progressCard" style="text-align:center;">
         <h2>Today's Progress</h2>
         <div class="ring-wrap">
@@ -303,32 +329,6 @@
       </div>
 
       <div class="card">
-        <h2>Prayer Points — <span id="prayerPointsLabel">today's two</span></h2>
-        <div id="prayerPointsList"></div>
-        <div class="sub" style="margin-top:10px;">Edit this list any time in the Prayer_Points sheet.</div>
-      </div>
-
-      <div class="card">
-        <h2>Gym — <span id="gymDayLabel"></span></h2>
-        <label>Today's set</label>
-        <textarea id="gymWorkout" placeholder="e.g. Bench 3x8 @135, Squat 3x5 @185"></textarea>
-        <div class="check">
-          <input type="checkbox" id="gymDone">
-          <label for="gymDone" style="margin:0;">Done</label>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>To-Do List</h2>
-        <div class="todo-add-row">
-          <input type="text" id="todoNewTask" placeholder="Add a task">
-          <button class="secondary" onclick="addTodoItem()">Add</button>
-        </div>
-        <ul class="todo-list" id="todoList"></ul>
-        <div class="sub" style="margin-top:10px;">Also editable directly in the ToDo_List sheet.</div>
-      </div>
-
-      <div class="card">
         <h2>Notes</h2>
         <input type="text" id="dayNotes" placeholder="anything worth remembering about today">
         <button onclick="saveAll()">Save now</button>
@@ -342,6 +342,41 @@
           <tbody></tbody>
         </table>
       </div>
+
+      </div><!-- /tab-panel: tracker -->
+
+      <div class="tab-panel" data-tab-panel="todo" hidden>
+        <div class="card">
+          <h2>To-Do List</h2>
+          <div class="todo-add-row">
+            <input type="text" id="todoNewTask" placeholder="Add a task">
+            <button class="secondary" onclick="addTodoItem()">Add</button>
+          </div>
+          <ul class="todo-list" id="todoList"></ul>
+          <div class="sub" style="margin-top:10px;">Also editable directly in the ToDo_List sheet.</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="prayer" hidden>
+        <div class="card">
+          <h2>Prayer Points — <span id="prayerPointsLabel">today's two</span></h2>
+          <div id="prayerPointsList"></div>
+          <div class="sub" style="margin-top:10px;">Edit this list any time in the Prayer_Points sheet.</div>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="gym" hidden>
+        <div class="card">
+          <h2>Gym — <span id="gymDayLabel"></span></h2>
+          <label>Today's set</label>
+          <textarea id="gymWorkout" placeholder="e.g. Bench 3x8 @135, Squat 3x5 @185"></textarea>
+          <div class="check">
+            <input type="checkbox" id="gymDone">
+            <label for="gymDone" style="margin:0;">Done</label>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -701,9 +736,36 @@
       });
     }
 
+    // ---- Tabs --------------------------------------------------------------
+    function switchTab(name) {
+      document.querySelectorAll('.tab-panel').forEach(function (panel) {
+        var active = panel.getAttribute('data-tab-panel') === name;
+        panel.hidden = !active;
+        if (active) {
+          // Cards in a tab that was hidden never got a chance to intersect
+          // the viewport, so the scroll-reveal observer may not have fired
+          // for them yet — force them visible the moment the tab is shown
+          // rather than leaving them stuck at opacity:0.
+          panel.querySelectorAll('.card.reveal').forEach(function (c) { c.classList.add('in-view'); });
+        }
+      });
+      document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        var active = btn.getAttribute('data-tab') === name;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+
+    function wireTabs() {
+      document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { switchTab(btn.getAttribute('data-tab')); });
+      });
+    }
+
     wireAutosave();
     wireCompletionCue();
     wireGymAutosave();
+    wireTabs();
     document.getElementById('todoNewTask').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addTodoItem();
     });
