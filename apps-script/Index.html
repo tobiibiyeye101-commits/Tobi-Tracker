@@ -378,13 +378,7 @@
 
       <div class="tab-panel" data-tab-panel="calendar" hidden>
         <div class="card">
-          <h2>Today's Tracker Blocks</h2>
-          <div id="calendarBlocks"></div>
-          <button onclick="syncCalendar()">Sync to Calendar</button>
-          <div id="calendarStatus" class="sub" style="margin-top:8px;"></div>
-        </div>
-        <div class="card">
-          <h2>Everything Else Today</h2>
+          <h2>Today's Events</h2>
           <div id="calendarEvents"></div>
         </div>
 
@@ -792,42 +786,23 @@
 
     // ---- Calendar -----------------------------------------------------------
     function loadCalendar() {
-      document.getElementById('calendarStatus').textContent = 'Loading…';
+      document.getElementById('calendarEvents').innerHTML = '<div class="todo-empty">Loading…</div>';
       google.script.run
-        .withSuccessHandler(function (summary) {
-          renderCalendar(summary);
-          document.getElementById('calendarStatus').textContent = '';
-        })
+        .withSuccessHandler(renderCalendar)
         .withFailureHandler(function (err) {
-          document.getElementById('calendarStatus').textContent = 'Could not load calendar (' + err.message + ')';
+          document.getElementById('calendarEvents').innerHTML =
+            '<div class="todo-empty">Could not load calendar (' + err.message + ')</div>';
         })
         .clientGetCalendar();
     }
 
     function renderCalendar(summary) {
-      var blocksWrap = document.getElementById('calendarBlocks');
-      blocksWrap.innerHTML = '';
-      if (!summary.blocks.length) {
-        blocksWrap.innerHTML = '<div class="todo-empty">Nothing time-boxed yet today — log a Gym set to add one, or check back once tonight\'s prayer block is due.</div>';
-      }
-      summary.blocks.forEach(function (b) {
-        var row = document.createElement('div');
-        row.className = 'prayer-point';
-        var conflictHtml = b.conflicts.length
-          ? '<div style="color:var(--accent-strong);font-size:0.8rem;margin-top:4px;">⚠ overlaps ' + b.conflicts.join(', ') + '</div>'
-          : '';
-        row.innerHTML = '<span class="num">' + b.start + '</span>' +
-          '<span>' + b.title + ' — ' + b.start + '–' + b.end + conflictHtml + '</span>';
-        blocksWrap.appendChild(row);
-      });
-
       var eventsWrap = document.getElementById('calendarEvents');
       eventsWrap.innerHTML = '';
-      var others = summary.events.filter(function (e) { return !e.isTracker; });
-      if (!others.length) {
-        eventsWrap.innerHTML = '<div class="todo-empty">Nothing else on your calendar today.</div>';
+      if (!summary.events.length) {
+        eventsWrap.innerHTML = '<div class="todo-empty">Nothing on your calendar today.</div>';
       }
-      others.forEach(function (e) {
+      summary.events.forEach(function (e) {
         var row = document.createElement('div');
         row.className = 'prayer-point';
         row.innerHTML = '<span class="num">' + e.start + '</span><span>' + e.title + '</span>';
@@ -835,8 +810,8 @@
       });
 
       // Default the "Add an Event" date to today, but only if it's still
-      // empty — a re-render (after syncing or adding an event) shouldn't
-      // wipe out a different date the person already picked.
+      // empty — a re-render (after adding an event) shouldn't wipe out a
+      // different date the person already picked.
       var dateInput = document.getElementById('newEventDate');
       if (dateInput && !dateInput.value) dateInput.value = summary.dateStr;
     }
@@ -864,19 +839,6 @@
           statusEl.textContent = 'Could not add event (' + err.message + ')';
         })
         .clientAddCalendarEvent(dateInput.value, titleInput.value.trim(), descInput.value);
-    }
-
-    function syncCalendar() {
-      document.getElementById('calendarStatus').textContent = 'Syncing…';
-      google.script.run
-        .withSuccessHandler(function (summary) {
-          renderCalendar(summary);
-          document.getElementById('calendarStatus').textContent = 'Synced ✓ · ' + new Date().toLocaleTimeString();
-        })
-        .withFailureHandler(function (err) {
-          document.getElementById('calendarStatus').textContent = 'Sync failed (' + err.message + ')';
-        })
-        .clientSyncCalendar();
     }
 
     wireAutosave();

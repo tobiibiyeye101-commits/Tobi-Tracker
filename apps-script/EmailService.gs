@@ -12,13 +12,13 @@ function createTriggers() {
   ScriptApp.newTrigger('sendMorningEmail').timeBased().everyDays(1).atHour(7).nearMinute(0).create();
   ScriptApp.newTrigger('sendMiddayEmail').timeBased().everyDays(1).atHour(13).nearMinute(0).create();
   ScriptApp.newTrigger('sendEveningEmail').timeBased().everyDays(1).atHour(18).nearMinute(0).create();
-  // Runs before the 7am email so today's prayer/gym blocks are already on
-  // the calendar by the time that reminder lands.
-  ScriptApp.newTrigger('syncTodayToCalendar').timeBased().everyDays(1).atHour(6).nearMinute(30).create();
-  Logger.log('Triggers created: calendar sync 6:30am, emails 7am/1pm/6pm daily.');
+  Logger.log('Triggers created: 7am, 1pm, 6pm daily.');
 }
 
 function deleteTriggers() {
+  // syncTodayToCalendar is no longer created, but stays listed here so that
+  // re-running this cleans up a leftover trigger from before it was removed,
+  // rather than leaving it pointed at a function that no longer exists.
   var handled = ['sendMorningEmail', 'sendMiddayEmail', 'sendEveningEmail', 'syncTodayToCalendar'];
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (handled.indexOf(t.getHandlerFunction()) !== -1) {
