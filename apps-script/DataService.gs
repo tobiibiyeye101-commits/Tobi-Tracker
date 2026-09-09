@@ -6,13 +6,6 @@
  * due, etc). WebApp.gs and EmailService.gs both build on top of this file.
  */
 
-// ---- Set 1 (date-driven rotation) -----------------------------------------
-function getSet1MessageForDate_(date) {
-  var idx = daysSinceStart_(date);
-  if (idx < 0) idx = 0;
-  return SET1_ROTATION[idx % SET1_ROTATION.length];
-}
-
 // ---- Prayer ramp ------------------------------------------------------------
 function getPrayerPhaseForDate_(date) {
   var idx = Math.max(0, daysSinceStart_(date));
@@ -141,46 +134,61 @@ function saveGymLog(workout, done) {
   return getTodayContext();
 }
 
-// ---- Pointers (Set 2 current message, Bible reading position) -------------
+// ---- Pointers (Set 1 + Set 2 current message, Bible reading position) -----
 function getPointers_() {
-  var sheet = getOrCreateSpreadsheet_().getSheetByName('Pointers');
-  var row = sheet.getRange(2, 1, 1, 5).getValues()[0];
+  var sheet = getPointersSheet_();
+  var row = sheet.getRange(2, 1, 1, 6).getValues()[0];
   return {
-    set2Index: row[0] || 1,
-    bibleMonth: row[1] || 1,
-    bibleWeek: row[2] || 1,
-    bibleDay: row[3] || 1
+    set1Index: row[0] || 1,
+    set2Index: row[1] || 1,
+    bibleMonth: row[2] || 1,
+    bibleWeek: row[3] || 1,
+    bibleDay: row[4] || 1
   };
 }
 
 function savePointers_(pointers) {
-  var sheet = getOrCreateSpreadsheet_().getSheetByName('Pointers');
-  sheet.getRange(2, 1, 1, 5).setValues([[
-    pointers.set2Index, pointers.bibleMonth, pointers.bibleWeek, pointers.bibleDay, new Date()
+  var sheet = getPointersSheet_();
+  sheet.getRange(2, 1, 1, 6).setValues([[
+    pointers.set1Index, pointers.set2Index, pointers.bibleMonth, pointers.bibleWeek, pointers.bibleDay, new Date()
   ]]);
 }
 
-function advanceSet2Message() {
-  var pointers = getPointers_();
-  var sheet = getOrCreateSpreadsheet_().getSheetByName('Set2_Messages');
+/**
+ * Shared by advanceSet1Message/advanceSet2Message: marks the current row
+ * Done in a Set1_Messages/Set2_Messages-shaped sheet, marks the next row
+ * Current, and returns the next index (capped at the list length).
+ */
+function advanceMessageSheet_(sheet, currentIndex, messages) {
   var lastRow = sheet.getLastRow();
   var data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
 
-  // mark the current one Done
   data.forEach(function (r, i) {
-    if (r[0] === pointers.set2Index) {
+    if (r[0] === currentIndex) {
       sheet.getRange(i + 2, 3, 1, 2).setValues([['Done', new Date()]]);
     }
   });
 
-  var nextIndex = Math.min(pointers.set2Index + 1, SET2_MESSAGES.length);
+  var nextIndex = Math.min(currentIndex + 1, messages.length);
   data.forEach(function (r, i) {
-    if (r[0] === nextIndex && nextIndex !== pointers.set2Index) {
+    if (r[0] === nextIndex && nextIndex !== currentIndex) {
       sheet.getRange(i + 2, 3, 1, 1).setValue('Current');
     }
   });
 
-  pointers.set2Index = nextIndex;
+  return nextIndex;
+}
+
+function advanceSet1Message() {
+  var pointers = getPointers_();
+  pointers.set1Index = advanceMessageSheet_(getSet1Sheet_(), pointers.set1Index, SET1_MESSAGES);
+  savePointers_(pointers);
+  return pointers;
+}
+
+function advanceSet2Message() {
+  var pointers = getPointers_();
+  pointers.set2Index = advanceMessageSheet_(getSet2Sheet_(), pointers.set2Index, SET2_MESSAGES);
   savePointers_(pointers);
   return pointers;
 }
@@ -303,7 +311,9 @@ function getTodayContext() {
     dayName: Utilities.formatDate(date, Session.getScriptTimeZone(), 'EEEE, MMMM d'),
     inWindow: isWithinTrackingWindow_(date),
     phaseLabel: targets.phaseLabel,
-    set1Message: getSet1MessageForDate_(date),
+    set1Index: pointers.set1Index,
+    set1Total: SET1_MESSAGES.length,
+    set1Message: SET1_MESSAGES[pointers.set1Index - 1] || 'All messages complete',
     set1Done: existing.set1Done === 'Yes',
     set2Index: pointers.set2Index,
     set2Total: SET2_MESSAGES.length,

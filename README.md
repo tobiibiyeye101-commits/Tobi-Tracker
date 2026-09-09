@@ -14,7 +14,7 @@ uses 3.
 
 | | |
 |---|---|
-| **Set 1** | `Every Tree A Forest → A Man Sent From God → Prevailing Prayer 2 → Soul Winners Congress 2024`, repeating every 4 days from Sep 3. Computed automatically from the date — nothing to enter. |
+| **Set 1** | "3 Kinds of Wisdom," a 12-part series — tracked as a single "current part" pointer, same as Set 2. It only advances when you tick "Listened to it" for the part you're on; it doesn't move on its own, and it's fine to sit on the same part across several days. |
 | **Set 2** | The 23 longer messages (This Is It, Stair Summit, Coordinators Training, Money Game series, etc.), tracked as a single "current message" pointer you advance yourself as you finish each one — not date-driven. |
 | **Read Rhapsody** | A daily done checkbox + notes, logged before the Bible reading plan each day. |
 | **Bible reading plan** | You enter Month / Week / Day directly; everything before your current entry is implicitly done. |
@@ -83,7 +83,7 @@ anything onto your calendar — that's a deliberate choice, not a limitation.
 ## Adjusting things later
 
 Everything that might need to change lives in `apps-script/Config.gs`:
-- `SET1_ROTATION` / `SET2_MESSAGES` — the message lists.
+- `SET1_MESSAGES` / `SET2_MESSAGES` — the message lists.
 - `PRAYER_PHASES` — the ramp: edit minutes-per-component per phase, or the day
   ranges the phases cover.
 - `START_DATE_STR` / `END_DATE_STR` — the tracking window.

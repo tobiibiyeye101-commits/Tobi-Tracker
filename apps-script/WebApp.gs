@@ -26,6 +26,11 @@ function clientSaveLog(entry) {
   return saveTodayLog(entry);
 }
 
+function clientAdvanceSet1() {
+  advanceSet1Message();
+  return getTodayContext();
+}
+
 function clientAdvanceSet2() {
   advanceSet2Message();
   return getTodayContext();

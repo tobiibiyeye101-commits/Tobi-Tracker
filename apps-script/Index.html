@@ -251,8 +251,9 @@
       </div>
 
       <div class="card">
-        <h2>First Batch — Today's Message</h2>
-        <div class="msg" id="set1Message"></div>
+        <h2>First Batch — Current Message</h2>
+        <span class="pill" id="set1Pill"></span>
+        <div class="msg" id="set1Message" style="margin-top:8px;"></div>
         <div class="check">
           <input type="checkbox" id="set1Done">
           <label for="set1Done" style="margin:0;">Listened to it</label>
@@ -420,6 +421,7 @@
       document.getElementById('dateLabel').textContent = ctx.dayName;
       document.getElementById('windowLabel').textContent = ctx.inWindow ? '' : 'Outside the Sep 3 – Oct 31 tracking window';
 
+      document.getElementById('set1Pill').textContent = 'Part ' + ctx.set1Index + ' of ' + ctx.set1Total;
       document.getElementById('set1Message').textContent = ctx.set1Message;
       document.getElementById('set1Done').checked = ctx.set1Done;
 
@@ -714,6 +716,47 @@
       google.script.run.withSuccessHandler(onLoaded).clientAdvanceSet2();
     }
 
+    // ---- First Batch: only moves to the next part once today's part is
+    // ticked. Unlike Second Batch (a manual button), this rides the same
+    // checkbox wireAutosave already watches — so on check (not uncheck) we
+    // commit today's log first (so set1Done actually lands in Daily_Log
+    // before we ask what "today" looks like), *then* advance the pointer,
+    // then reload from the fresh context. Doing it in that order means
+    // ctx.set1Done reads back true instead of racing the debounced autosave.
+    function wireSet1Advance() {
+      var el = document.getElementById('set1Done');
+      if (!el) return;
+      el.addEventListener('change', function () {
+        if (!el.checked) return; // only advance on check, not uncheck
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = null;
+        saving = true;
+        var statusEl = document.getElementById('status');
+        statusEl.textContent = 'Saving…';
+        google.script.run
+          .withSuccessHandler(function () {
+            google.script.run
+              .withSuccessHandler(function (ctx) {
+                saving = false;
+                onLoaded(ctx);
+                statusEl.textContent = 'Saved ✓ · ' + new Date().toLocaleTimeString();
+                if (dirtyWhileSaving) { dirtyWhileSaving = false; scheduleAutosave(); }
+              })
+              .withFailureHandler(function (err) {
+                saving = false;
+                statusEl.textContent = 'Could not advance (' + err.message + ')';
+              })
+              .clientAdvanceSet1();
+          })
+          .withFailureHandler(function (err) {
+            saving = false;
+            statusEl.textContent = 'Could not save — will retry (' + err.message + ')';
+            scheduleAutosave();
+          })
+          .clientSaveLog(collectEntry());
+      });
+    }
+
     function updateBiblePointer() {
       var m = document.getElementById('bibleMonth').value;
       var w = document.getElementById('bibleWeek').value;
@@ -843,6 +886,7 @@
 
     wireAutosave();
     wireCompletionCue();
+    wireSet1Advance();
     wireGymAutosave();
     wireTabs();
     document.getElementById('todoNewTask').addEventListener('keydown', function (e) {

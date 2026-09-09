@@ -15,14 +15,23 @@ var END_DATE_STR   = '2026-10-31'; // last day of tracking
 // (Session.getActiveUser()), which is normally what you want.
 var EMAIL_TO = '';
 
-// ---- Set 1: the 4-message rotation (one per day, repeating) --------------
-// This mirrors the "Message Rotation" schedule already in your
-// Progress Log > Message Rotation Table - Sep 3 to Oct 31.
-var SET1_ROTATION = [
-  'Every Tree A Forest',
-  'A Man Sent From God',
-  'Prevailing Prayer 2',
-  'Soul Winners Congress 2024'
+// ---- Set 1: "3 Kinds of Wisdom" — a 12-part series, one part a day --------
+// Not date-driven: like Set 2, this is a pointer you advance yourself by
+// ticking "Listened to it" — it only moves to the next part once the
+// current one is marked done, however many days that actually takes.
+var SET1_MESSAGES = [
+  '3 Kinds of Wisdom — Part 1',
+  '3 Kinds of Wisdom — Part 2',
+  '3 Kinds of Wisdom — Part 3',
+  '3 Kinds of Wisdom — Part 4',
+  '3 Kinds of Wisdom — Part 5',
+  '3 Kinds of Wisdom — Part 6',
+  '3 Kinds of Wisdom — Part 7',
+  '3 Kinds of Wisdom — Part 8',
+  '3 Kinds of Wisdom — Part 9',
+  '3 Kinds of Wisdom — Part 10',
+  '3 Kinds of Wisdom — Part 11',
+  '3 Kinds of Wisdom — Part 12'
 ];
 
 // ---- Set 2: the long-form messages, listened to at your own pace ---------

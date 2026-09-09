@@ -9,6 +9,7 @@
 
 function setup() {
   var ss = getOrCreateSpreadsheet_();
+  ensureSet1Sheet_(ss);
   ensureSet2Sheet_(ss);
   ensurePointersSheet_(ss);
   ensureDailyLogSheet_(ss);
@@ -42,6 +43,26 @@ function removeDefaultSheet_(ss) {
   if (sheet1 && ss.getSheets().length > 1) ss.deleteSheet(sheet1);
 }
 
+// "3 Kinds of Wisdom" — same pointer-driven shape as Set 2, just a
+// different sheet/list. See ensureSet2Sheet_ below for the pattern this
+// mirrors exactly.
+function ensureSet1Sheet_(ss) {
+  var sheet = ss.getSheetByName('Set1_Messages');
+  if (!sheet) {
+    sheet = ss.insertSheet('Set1_Messages');
+    sheet.appendRow(['Order', 'Title', 'Status', 'Completed Date']);
+    sheet.setFrozenRows(1);
+    SET1_MESSAGES.forEach(function (title, i) {
+      sheet.appendRow([i + 1, title, i === 0 ? 'Current' : 'Not Started', '']);
+    });
+    sheet.autoResizeColumns(1, 4);
+  }
+  return sheet;
+}
+function getSet1Sheet_() {
+  return ensureSet1Sheet_(getOrCreateSpreadsheet_());
+}
+
 function ensureSet2Sheet_(ss) {
   var sheet = ss.getSheetByName('Set2_Messages');
   if (!sheet) {
@@ -55,16 +76,40 @@ function ensureSet2Sheet_(ss) {
   }
   return sheet;
 }
+function getSet2Sheet_() {
+  return ensureSet2Sheet_(getOrCreateSpreadsheet_());
+}
 
 function ensurePointersSheet_(ss) {
   var sheet = ss.getSheetByName('Pointers');
   if (!sheet) {
     sheet = ss.insertSheet('Pointers');
-    sheet.appendRow(['Set2_CurrentIndex', 'Bible_Month', 'Bible_Week', 'Bible_Day', 'Last Updated']);
+    sheet.appendRow(['Set1_CurrentIndex', 'Set2_CurrentIndex', 'Bible_Month', 'Bible_Week', 'Bible_Day', 'Last Updated']);
     sheet.setFrozenRows(1);
-    sheet.appendRow([1, 1, 1, 1, new Date()]);
+    sheet.appendRow([1, 1, 1, 1, 1, new Date()]);
+  } else {
+    migratePointersAddSet1_(sheet);
   }
   return sheet;
+}
+function getPointersSheet_() {
+  return ensurePointersSheet_(getOrCreateSpreadsheet_());
+}
+
+/**
+ * If Pointers was created before Set 1 became pointer-driven, insert a new
+ * first column (Set1_CurrentIndex) ahead of Set2_CurrentIndex, shifting the
+ * rest right, and seed it to 1 so the existing row keeps its shape. Same
+ * pattern as migrateDailyLogAddRhapsody_ below.
+ */
+function migratePointersAddSet1_(sheet) {
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headers.indexOf('Set1_CurrentIndex') !== -1) return; // already migrated
+
+  sheet.insertColumnBefore(1);
+  sheet.getRange(1, 1).setValue('Set1_CurrentIndex');
+  if (sheet.getLastRow() >= 2) sheet.getRange(2, 1).setValue(1);
 }
 
 function ensureDailyLogSheet_(ss) {

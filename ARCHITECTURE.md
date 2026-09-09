@@ -21,8 +21,9 @@ Nothing here needs a server, a hosting bill, or an account beyond Google's.
 
 ```
 Google Sheet ("Tobi Spiritual Progress Tracker")
+ ├─ Set1_Messages    — the 12-part "3 Kinds of Wisdom" series + status per part
  ├─ Set2_Messages    — the 23-message list + status per message
- ├─ Pointers         — single row: current Set 2 index, current Bible M/W/D
+ ├─ Pointers         — single row: current Set 1 index, current Set 2 index, current Bible M/W/D
  ├─ Daily_Log        — one row per calendar day, 22 columns
  ├─ ToDo_List        — ID | Task | Done | Created — freely edited from the app or the sheet
  ├─ Prayer_Points    — Order | Point — content edited in-sheet only, app shows 2/day rotating
@@ -55,9 +56,9 @@ anything about today independently of it.
 ## Data model
 
 **`Pointers`** (1 header row + 1 data row — always exactly one row):
-`Set2_CurrentIndex | Bible_Month | Bible_Week | Bible_Day | Last Updated`
+`Set1_CurrentIndex | Set2_CurrentIndex | Bible_Month | Bible_Week | Bible_Day | Last Updated`
 This is *positional* state — it doesn't say what happened on any given day, it
-says where the person currently is in Set 2 and in the Bible plan, right now.
+says where the person currently is in Set 1, Set 2, and the Bible plan, right now.
 
 **`Daily_Log`** (1 header row + 1 row per calendar day). Column order matters —
 this is the thing that has broken repeatedly (see Known Traps below), so it's
@@ -97,19 +98,21 @@ in `Daily_Log`.
 
 ## Core algorithms (all in `DataService.gs`, driven by `Config.gs`)
 
-**Set 1 rotation** — purely a function of the date, nothing stored:
-`SET1_ROTATION[daysSinceStart(date) % 4]`.
-
 **Prayer targets** — a function of the date's phase (currently one flat phase,
 see `PRAYER_PHASES` in `Config.gs`) and day-of-week: Friday and Saturday nights
 replace the Evening block on their respective days rather than stacking on
 top of it.
 
-**Set 2 / Bible position** — not date-driven at all. Both live in `Pointers`
-and only change when the person explicitly advances them (`advanceSet2Message()`,
-`setBiblePointer()`). `Daily_Log` still records whatever the pointers said on
-each day that was saved, as a historical snapshot — but the pointers
-themselves are the current-state source of truth, `Daily_Log` is the journal.
+**Set 1 / Set 2 / Bible position** — none of these are date-driven; all three
+live in `Pointers` and only change when the person explicitly advances them
+(`advanceSet1Message()`, `advanceSet2Message()`, `setBiblePointer()`). Set 1
+("3 Kinds of Wisdom", 12 parts) advances the moment "Listened to it" gets
+ticked for the current part — there's no rotation math, it just moves the
+pointer forward by one and can sit on the same part for as many days as it
+takes. Set 2 is the same mechanism behind its "move to next message" button.
+`Daily_Log` still records whatever the pointers said on each day that was
+saved, as a historical snapshot — but the pointers themselves are the
+current-state source of truth, `Daily_Log` is the journal.
 
 **Prayer Points rotation** — `getPrayerPointsForDate_()`: same date-driven idea
 as Set 1, but steps two items at a time — `list[idx*2 % N]` and
