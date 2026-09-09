@@ -46,6 +46,101 @@ function getPrayerTargetsForDate_(date) {
   return targets;
 }
 
+// ---- Prayer Points (content-only, two-per-day rotation) -------------------
+function getPrayerPointsForDate_(date) {
+  var sheet = getPrayerPointsSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var list = sheet.getRange(2, 2, lastRow - 1, 1).getValues().map(function (r) { return r[0]; })
+    .filter(function (v) { return v !== ''; });
+  if (!list.length) return [];
+  var idx = Math.max(0, daysSinceStart_(date)) * 2;
+  if (list.length === 1) return [list[0]];
+  return [list[idx % list.length], list[(idx + 1) % list.length]];
+}
+
+// ---- To-Do List ---------------------------------------------------------------
+function getTodos() {
+  var sheet = getToDoSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  return values
+    .map(function (r) { return { id: r[0], task: r[1], done: r[2] === true }; })
+    .filter(function (t) { return t.task !== ''; });
+}
+
+function findToDoRow_(sheet, id) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+  var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (Number(ids[i][0]) === Number(id)) return i + 2;
+  }
+  return -1;
+}
+
+function addTodo(task) {
+  task = String(task || '').trim();
+  if (!task) return getTodos();
+  var sheet = getToDoSheet_();
+  var lastRow = sheet.getLastRow();
+  var nextId = 1;
+  if (lastRow >= 2) {
+    var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues().map(function (r) { return Number(r[0]) || 0; });
+    nextId = Math.max.apply(null, ids) + 1;
+  }
+  sheet.appendRow([nextId, task, false, new Date()]);
+  return getTodos();
+}
+
+function toggleTodo(id, done) {
+  var sheet = getToDoSheet_();
+  var row = findToDoRow_(sheet, id);
+  if (row !== -1) sheet.getRange(row, 3).setValue(!!done);
+  return getTodos();
+}
+
+function editTodoText(id, task) {
+  var sheet = getToDoSheet_();
+  var row = findToDoRow_(sheet, id);
+  if (row !== -1) sheet.getRange(row, 2).setValue(String(task || '').trim());
+  return getTodos();
+}
+
+function deleteTodo(id) {
+  var sheet = getToDoSheet_();
+  var row = findToDoRow_(sheet, id);
+  if (row !== -1) sheet.deleteRow(row);
+  return getTodos();
+}
+
+// ---- Gym ------------------------------------------------------------------
+function getGymLogRow_(dateStr) {
+  var sheet = getGymLogSheet_();
+  var row = findRowForDate_(sheet, dateStr);
+  if (row === -1) return null;
+  var values = sheet.getRange(row, 1, 1, 5).getValues()[0];
+  return { date: values[0], day: values[1], workout: values[2], done: values[3] };
+}
+
+function saveGymLog(workout, done) {
+  var sheet = getGymLogSheet_();
+  var date = todayDate_();
+  var dateStr = dateKey_(date);
+  var row = findRowForDate_(sheet, dateStr);
+  var values = [
+    dateStr, Utilities.formatDate(date, Session.getScriptTimeZone(), 'EEEE'),
+    workout || '', !!done, new Date()
+  ];
+  if (row === -1) {
+    sheet.appendRow(values);
+  } else {
+    sheet.getRange(row, 1, 1, values.length).setValues([values]);
+  }
+  return getTodayContext();
+}
+
 // ---- Pointers (Set 2 current message, Bible reading position) -------------
 function getPointers_() {
   var sheet = getOrCreateSpreadsheet_().getSheetByName('Pointers');
@@ -201,6 +296,7 @@ function getTodayContext() {
   var pointers = getPointers_();
   var targets = getPrayerTargetsForDate_(date);
   var existing = getLogRow_(dateStr) || {};
+  var gym = getGymLogRow_(dateStr) || {};
 
   return {
     dateStr: dateStr,
@@ -230,6 +326,11 @@ function getTodayContext() {
       total: existing.prayerTotal || 0
     },
     notes: existing.notes || '',
+    todos: getTodos(),
+    prayerPoints: getPrayerPointsForDate_(date),
+    gymDay: Utilities.formatDate(date, Session.getScriptTimeZone(), 'EEEE'),
+    gymWorkout: gym.workout || '',
+    gymDone: gym.done === true,
     webAppUrl: PropertiesService.getScriptProperties().getProperty(WEBAPP_URL_PROPERTY_KEY) || ''
   };
 }

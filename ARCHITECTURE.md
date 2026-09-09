@@ -21,13 +21,16 @@ Nothing here needs a server, a hosting bill, or an account beyond Google's.
 
 ```
 Google Sheet ("Tobi Spiritual Progress Tracker")
- ├─ Set2_Messages   — the 23-message list + status per message
- ├─ Pointers        — single row: current Set 2 index, current Bible M/W/D
- └─ Daily_Log       — one row per calendar day, 22 columns
+ ├─ Set2_Messages    — the 23-message list + status per message
+ ├─ Pointers         — single row: current Set 2 index, current Bible M/W/D
+ ├─ Daily_Log        — one row per calendar day, 22 columns
+ ├─ ToDo_List        — ID | Task | Done | Created — freely edited from the app or the sheet
+ ├─ Prayer_Points    — Order | Point — content edited in-sheet only, app shows 2/day rotating
+ └─ Gym_Log          — one row per calendar day: Date | Day | Workout | Done | Last Updated
 
 Apps Script project (bound to that Sheet)
  ├─ Config.gs        — all constants: dates, message lists, prayer targets
- ├─ SheetSetup.gs     — creates/migrates/self-heals the three tabs above
+ ├─ SheetSetup.gs     — creates/migrates/self-heals the tabs above
  ├─ DataService.gs   — all reads/writes to the Sheet + the pure-logic rules
  ├─ EmailService.gs  — builds and sends the three daily reminder emails
  ├─ WebApp.gs        — doGet() entry point + the functions the page can call
@@ -97,6 +100,18 @@ and only change when the person explicitly advances them (`advanceSet2Message()`
 `setBiblePointer()`). `Daily_Log` still records whatever the pointers said on
 each day that was saved, as a historical snapshot — but the pointers
 themselves are the current-state source of truth, `Daily_Log` is the journal.
+
+**Prayer Points rotation** — `getPrayerPointsForDate_()`: same date-driven idea
+as Set 1, but steps two items at a time — `list[idx*2 % N]` and
+`list[(idx*2+1) % N]` where `idx = daysSinceStart(date)`. Content-only: there's
+no "done" state for it, and it does not feed the progress ring (an open list
+you edit in the sheet isn't a per-day yes/no the way Set 1 or Bible are).
+`ToDo_List` is the same story for a different reason — it's a persistent
+cross-day list, not something with a daily complete/incomplete state, so it's
+excluded from the ring for the same reason. `Gym_Log` mirrors `Daily_Log`'s
+one-row-per-day shape (`findRowForDate_()` reused as-is against a different
+sheet) but is also currently excluded from the ring, since the split's actual
+days aren't encoded anywhere — it's just whatever gets typed in that day.
 
 **"One row per day"** — `findRowForDate_()` scans column A for a match against
 today's `yyyy-MM-dd` string. This is where the multi-day debugging happened

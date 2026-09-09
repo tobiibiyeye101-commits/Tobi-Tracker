@@ -12,6 +12,9 @@ function setup() {
   ensureSet2Sheet_(ss);
   ensurePointersSheet_(ss);
   ensureDailyLogSheet_(ss);
+  ensureToDoSheet_(ss);
+  ensurePrayerPointsSheet_(ss);
+  ensureGymLogSheet_(ss);
   // Only safe to remove the default "Sheet1" once the tabs above exist —
   // Sheets refuses to delete the last remaining sheet in a spreadsheet.
   removeDefaultSheet_(ss);
@@ -115,6 +118,58 @@ function migrateDailyLogAddRhapsody_(sheet) {
 
   sheet.insertColumnsBefore(bibleMonthCol, 2);
   sheet.getRange(1, bibleMonthCol, 1, 2).setValues([['Rhapsody Done', 'Rhapsody Notes']]);
+}
+
+// ---- To-Do List ------------------------------------------------------------
+// Fully editable both ways: the app adds/checks/edits/deletes rows by ID,
+// and you can just as easily add or edit rows directly in the sheet.
+function ensureToDoSheet_(ss) {
+  var sheet = ss.getSheetByName('ToDo_List');
+  if (!sheet) {
+    sheet = ss.insertSheet('ToDo_List');
+    sheet.appendRow(['ID', 'Task', 'Done', 'Created']);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+function getToDoSheet_() {
+  return ensureToDoSheet_(getOrCreateSpreadsheet_());
+}
+
+// ---- Prayer Points ----------------------------------------------------------
+// Content-only — edit the list in this sheet, the app just displays today's
+// two-per-day rotation through it (see getPrayerPointsForDate_).
+function ensurePrayerPointsSheet_(ss) {
+  var sheet = ss.getSheetByName('Prayer_Points');
+  if (!sheet) {
+    sheet = ss.insertSheet('Prayer_Points');
+    sheet.appendRow(['Order', 'Point']);
+    sheet.setFrozenRows(1);
+    for (var i = 1; i <= 10; i++) {
+      sheet.appendRow([i, 'Prayer Point ' + i + ' — edit this in the Prayer_Points sheet']);
+    }
+  }
+  return sheet;
+}
+function getPrayerPointsSheet_() {
+  return ensurePrayerPointsSheet_(getOrCreateSpreadsheet_());
+}
+
+// ---- Gym --------------------------------------------------------------------
+// One row per day, same upsert-by-date shape as Daily_Log — free-text
+// "today's set" since the actual split just varies by what you type.
+function ensureGymLogSheet_(ss) {
+  var sheet = ss.getSheetByName('Gym_Log');
+  if (!sheet) {
+    sheet = ss.insertSheet('Gym_Log');
+    sheet.appendRow(['Date', 'Day', 'Workout', 'Done', 'Last Updated']);
+    sheet.setFrozenRows(1);
+  }
+  sheet.getRange('A2:A').setNumberFormat('@'); // same date-autoconvert defense as Daily_Log
+  return sheet;
+}
+function getGymLogSheet_() {
+  return ensureGymLogSheet_(getOrCreateSpreadsheet_());
 }
 
 /**

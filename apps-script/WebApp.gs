@@ -39,3 +39,23 @@ function clientSetBiblePointer(month, week, day) {
 function clientGetHistory(days) {
   return getHistory(days);
 }
+
+function clientAddTodo(task) {
+  return addTodo(task);
+}
+
+function clientToggleTodo(id, done) {
+  return toggleTodo(id, done);
+}
+
+function clientEditTodoText(id, task) {
+  return editTodoText(id, task);
+}
+
+function clientDeleteTodo(id) {
+  return deleteTodo(id);
+}
+
+function clientSaveGym(workout, done) {
+  return saveGymLog(workout, done);
+}

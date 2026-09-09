@@ -147,6 +147,48 @@
       border-radius: 999px; padding: 4px 11px; font-size: 0.72rem; letter-spacing: 0.02em;
     }
     .chip.done { border-color: var(--accent); color: var(--accent-strong); }
+
+    /* ---- Prayer Points ---- */
+    .prayer-point {
+      display: flex; gap: 10px; align-items: baseline; padding: 10px 0;
+      border-bottom: 1px solid var(--border); font-size: 0.92rem; color: var(--ink);
+    }
+    .prayer-point:last-child { border-bottom: none; }
+    .prayer-point .num { color: var(--accent); font-family: "Bodoni Moda", serif; font-style: italic; flex-shrink: 0; }
+
+    /* ---- Gym ---- */
+    textarea#gymWorkout {
+      width: 100%; min-height: 90px; padding: 10px 12px; border: 1px solid var(--border);
+      background: var(--field-bg); color: var(--ink); border-radius: 8px; font-size: 0.95rem;
+      margin-top: 5px; font-family: "Manrope", sans-serif; resize: vertical;
+    }
+    textarea#gymWorkout:focus {
+      outline: none; border-color: var(--focus-ring); box-shadow: 0 0 0 3px rgba(201, 164, 99, 0.18);
+    }
+
+    /* ---- To-Do List ---- */
+    .todo-add-row { display: flex; gap: 8px; }
+    .todo-add-row input { margin-top: 0; }
+    .todo-add-row button { margin-top: 0; flex-shrink: 0; }
+    .todo-list { list-style: none; margin: 14px 0 0; padding: 0; }
+    .todo-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-item input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
+    .todo-item input[type=text] {
+      flex: 1; border: none; background: transparent; color: var(--ink); font-size: 0.92rem;
+      font-family: "Manrope", sans-serif; padding: 4px 2px; margin: 0; border-radius: 4px;
+    }
+    .todo-item input[type=text]:focus { outline: none; background: var(--field-bg); }
+    .todo-item.done input[type=text] { color: var(--ink-faint); text-decoration: line-through; }
+    .todo-delete {
+      background: none; border: none; color: var(--ink-faint); font-size: 1.1rem;
+      cursor: pointer; padding: 0 4px; margin: 0; line-height: 1;
+    }
+    .todo-delete:hover { color: var(--accent-strong); }
+    .todo-empty { color: var(--ink-faint); font-size: 0.85rem; padding: 8px 0; }
   </style>
 </head>
 <body>
@@ -261,6 +303,32 @@
       </div>
 
       <div class="card">
+        <h2>Prayer Points — <span id="prayerPointsLabel">today's two</span></h2>
+        <div id="prayerPointsList"></div>
+        <div class="sub" style="margin-top:10px;">Edit this list any time in the Prayer_Points sheet.</div>
+      </div>
+
+      <div class="card">
+        <h2>Gym — <span id="gymDayLabel"></span></h2>
+        <label>Today's set</label>
+        <textarea id="gymWorkout" placeholder="e.g. Bench 3x8 @135, Squat 3x5 @185"></textarea>
+        <div class="check">
+          <input type="checkbox" id="gymDone">
+          <label for="gymDone" style="margin:0;">Done</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>To-Do List</h2>
+        <div class="todo-add-row">
+          <input type="text" id="todoNewTask" placeholder="Add a task">
+          <button class="secondary" onclick="addTodoItem()">Add</button>
+        </div>
+        <ul class="todo-list" id="todoList"></ul>
+        <div class="sub" style="margin-top:10px;">Also editable directly in the ToDo_List sheet.</div>
+      </div>
+
+      <div class="card">
         <h2>Notes</h2>
         <input type="text" id="dayNotes" placeholder="anything worth remembering about today">
         <button onclick="saveAll()">Save now</button>
@@ -341,12 +409,106 @@
         ctx.prayerLogged.total + ' / ' + t.total + ' minutes logged today (' + pct + '%)';
 
       document.getElementById('dayNotes').value = ctx.notes || '';
+
+      renderPrayerPoints(ctx.prayerPoints);
+      document.getElementById('gymDayLabel').textContent = ctx.gymDay;
+      document.getElementById('gymWorkout').value = ctx.gymWorkout || '';
+      document.getElementById('gymDone').checked = ctx.gymDone;
+      renderTodos(ctx.todos);
+
       updateProgressUI();
 
       // Wire scroll-reveal exactly once, right as the cards actually become
       // visible for the first time — not on a guessed timeout, which would
       // race the network round trip and could flash already-shown cards.
       if (!revealInitialized) { revealInitialized = true; initReveal(); }
+    }
+
+    // ---- Prayer Points (read-only display) --------------------------------
+    function renderPrayerPoints(points) {
+      var wrap = document.getElementById('prayerPointsList');
+      wrap.innerHTML = '';
+      if (!points || !points.length) {
+        wrap.innerHTML = '<div class="todo-empty">Add points in the Prayer_Points sheet to get started.</div>';
+        return;
+      }
+      points.forEach(function (p, i) {
+        var row = document.createElement('div');
+        row.className = 'prayer-point';
+        row.innerHTML = '<span class="num">' + (i + 1) + '</span><span>' + p + '</span>';
+        wrap.appendChild(row);
+      });
+    }
+
+    // ---- Gym: its own small debounce, separate from the main autosave
+    // below since it saves to a different sheet via a different call. ------
+    var gymSaveTimer = null;
+    function scheduleGymSave() {
+      if (gymSaveTimer) clearTimeout(gymSaveTimer);
+      gymSaveTimer = setTimeout(persistGym, AUTOSAVE_DEBOUNCE_MS);
+    }
+    function persistGym() {
+      gymSaveTimer = null;
+      var workout = document.getElementById('gymWorkout').value;
+      var done = document.getElementById('gymDone').checked;
+      google.script.run
+        .withFailureHandler(function () { scheduleGymSave(); })
+        .clientSaveGym(workout, done);
+    }
+    function wireGymAutosave() {
+      document.getElementById('gymWorkout').addEventListener('input', scheduleGymSave);
+      document.getElementById('gymDone').addEventListener('change', scheduleGymSave);
+    }
+
+    // ---- To-Do List: each action hits the server directly (no debounce
+    // needed — these are discrete clicks/blurs, not continuous typing). ----
+    function renderTodos(todos) {
+      var list = document.getElementById('todoList');
+      list.innerHTML = '';
+      if (!todos || !todos.length) {
+        list.innerHTML = '<li class="todo-empty">Nothing on the list yet.</li>';
+        return;
+      }
+      todos.forEach(function (t) {
+        var li = document.createElement('li');
+        li.className = 'todo-item' + (t.done ? ' done' : '');
+
+        var check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = t.done;
+        check.addEventListener('change', function () {
+          li.classList.toggle('done', check.checked);
+          google.script.run.withSuccessHandler(renderTodos).clientToggleTodo(t.id, check.checked);
+        });
+
+        var text = document.createElement('input');
+        text.type = 'text';
+        text.value = t.task;
+        text.addEventListener('change', function () {
+          google.script.run.withSuccessHandler(renderTodos).clientEditTodoText(t.id, text.value);
+        });
+
+        var del = document.createElement('button');
+        del.className = 'todo-delete';
+        del.setAttribute('aria-label', 'Delete task');
+        del.textContent = '✕';
+        del.addEventListener('click', function () {
+          google.script.run.withSuccessHandler(renderTodos).clientDeleteTodo(t.id);
+        });
+
+        li.appendChild(check);
+        li.appendChild(text);
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    }
+
+    function addTodoItem() {
+      var input = document.getElementById('todoNewTask');
+      var task = input.value.trim();
+      if (!task) return;
+      input.value = '';
+      google.script.run.withSuccessHandler(renderTodos).clientAddTodo(task);
     }
 
     // ---- Live "Today's Progress" summary — recomputed from the DOM on
@@ -541,6 +703,10 @@
 
     wireAutosave();
     wireCompletionCue();
+    wireGymAutosave();
+    document.getElementById('todoNewTask').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') addTodoItem();
+    });
     load();
   </script>
 </body>
