@@ -62,9 +62,9 @@ uses 3.
    it if you ever change the times in `EmailService.gs`.)
 7. **Add the web app URL to your phone's home screen** from step 4 (Safari: Share →
    Add to Home Screen; Chrome: ⋮ → Add to Home screen) — that's your logging page all the
-   way through Oct 31. It gets a custom icon (a gold ring + "T" monogram matching the app's
-   theme, set via an `apple-touch-icon` tag baked right into `Index.html`) instead of a
-   generic bookmark icon — nothing extra to configure. Note the icon is separate from the
+   way through Oct 31. It gets a custom icon (a flowing double wave in the app's gold/
+   graphite palette, set via an `apple-touch-icon` tag baked right into `Index.html`)
+   instead of a generic bookmark icon — nothing extra to configure. Note the icon is separate from the
    tab favicon Apps Script shows while browsing to the URL, which is fixed to Google's own
    and can't be changed — this only affects the home-screen shortcut itself.
 
