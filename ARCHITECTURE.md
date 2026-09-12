@@ -26,7 +26,7 @@ Google Sheet ("Tobi Spiritual Progress Tracker")
  ├─ Pointers         — single row: current Set 1 index, current Set 2 index, current Bible M/W/D
  ├─ Daily_Log        — one row per calendar day, 22 columns
  ├─ ToDo_List        — ID | Task | Done | Created — freely edited from the app or the sheet
- ├─ Prayer_Points    — Order | Point — content edited in-sheet only, app shows 2/day rotating
+ ├─ Prayer_Points    — Order | Title | Content — edited in-sheet only, app shows 2/day rotating
  └─ Gym_Log          — one row per calendar day: Date | Day | Workout | Done | Last Updated
 
 Apps Script project (bound to that Sheet)

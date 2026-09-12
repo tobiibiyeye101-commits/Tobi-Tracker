@@ -20,7 +20,7 @@ uses 3.
 | **Bible reading plan** | You enter Month / Week / Day directly; everything before your current entry is implicitly done. |
 | **Prayer** | 5 components — Morning (1h, 30min Fri/Sat), Evening (1h), Friday Night (fixed, 3h, already established), Saturday Night (fixed, 2h), Campus prayer/prophesying (10min, unscheduled, fills gaps). Flat targets from day one — no ramp. See `PRAYER_PHASES` in `apps-script/Config.gs` to change any of it. |
 | **To-Do List** | Its own tab, fully editable both ways — add/check/edit/delete from the app, or edit rows directly in the `ToDo_List` sheet. |
-| **Prayer Points** | Content-only, edited in the `Prayer_Points` sheet — the app shows 2 per day on a rotation through the list. |
+| **Prayer Points** | A Title + Content pair per point, edited in the `Prayer_Points` sheet — the app shows 2 per day on a rotation through the list. |
 | **Gym** | One row per day (like Daily_Log) — a free-text "today's set" plus a Done checkbox, since the split just varies by what you type. |
 | **Calendar** | Shows what's on your default Google Calendar today, and lets you add a new event (any date, title, optional description) straight from the app. |
 

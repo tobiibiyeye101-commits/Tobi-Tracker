@@ -188,16 +188,37 @@ function ensurePrayerPointsSheet_(ss) {
   var sheet = ss.getSheetByName('Prayer_Points');
   if (!sheet) {
     sheet = ss.insertSheet('Prayer_Points');
-    sheet.appendRow(['Order', 'Point']);
+    sheet.appendRow(['Order', 'Title', 'Content']);
     sheet.setFrozenRows(1);
     for (var i = 1; i <= 10; i++) {
-      sheet.appendRow([i, 'Prayer Point ' + i + ' — edit this in the Prayer_Points sheet']);
+      sheet.appendRow([i, 'Prayer Point ' + i, 'Edit the title and content for this point in the Prayer_Points sheet.']);
     }
+  } else {
+    migratePrayerPointsAddContent_(sheet);
   }
   return sheet;
 }
 function getPrayerPointsSheet_() {
   return ensurePrayerPointsSheet_(getOrCreateSpreadsheet_());
+}
+
+/**
+ * If Prayer_Points predates the Title/Content split, it only has a single
+ * "Point" column. Relabel it "Title" in place and insert a new blank
+ * "Content" column right after it — existing points keep their text as a
+ * title with no content yet, rather than losing anything.
+ */
+function migratePrayerPointsAddContent_(sheet) {
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headers.indexOf('Content') !== -1) return; // already migrated
+
+  var pointCol = headers.indexOf('Point') + 1; // 1-based
+  if (pointCol === 0) return; // unexpected shape, don't guess
+
+  sheet.getRange(1, pointCol).setValue('Title');
+  sheet.insertColumnAfter(pointCol);
+  sheet.getRange(1, pointCol + 1).setValue('Content');
 }
 
 // ---- Gym --------------------------------------------------------------------

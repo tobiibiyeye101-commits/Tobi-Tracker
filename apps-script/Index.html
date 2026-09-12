@@ -179,11 +179,13 @@
 
     /* ---- Prayer Points ---- */
     .prayer-point {
-      display: flex; gap: 10px; align-items: baseline; padding: 10px 0;
+      display: flex; gap: 10px; align-items: flex-start; padding: 10px 0;
       border-bottom: 1px solid var(--border); font-size: 0.92rem; color: var(--ink);
     }
     .prayer-point:last-child { border-bottom: none; }
     .prayer-point .num { color: var(--accent); font-family: "Bodoni Moda", serif; font-style: italic; flex-shrink: 0; }
+    .prayer-point-title { font-weight: 700; color: var(--ink); }
+    .prayer-point-content { color: var(--ink-soft); font-size: 0.86rem; margin-top: 3px; }
 
     /* ---- Gym ---- */
     textarea#gymWorkout {
@@ -520,7 +522,10 @@
       points.forEach(function (p, i) {
         var row = document.createElement('div');
         row.className = 'prayer-point';
-        row.innerHTML = '<span class="num">' + (i + 1) + '</span><span>' + p + '</span>';
+        row.innerHTML = '<span class="num">' + (i + 1) + '</span>' +
+          '<div><div class="prayer-point-title">' + (p.title || '') + '</div>' +
+          (p.content ? '<div class="prayer-point-content">' + p.content + '</div>' : '') +
+          '</div>';
         wrap.appendChild(row);
       });
     }

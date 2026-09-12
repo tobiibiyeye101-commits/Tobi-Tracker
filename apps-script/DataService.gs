@@ -44,8 +44,9 @@ function getPrayerPointsForDate_(date) {
   var sheet = getPrayerPointsSheet_();
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  var list = sheet.getRange(2, 2, lastRow - 1, 1).getValues().map(function (r) { return r[0]; })
-    .filter(function (v) { return v !== ''; });
+  var list = sheet.getRange(2, 2, lastRow - 1, 2).getValues() // Title, Content
+    .map(function (r) { return { title: r[0], content: r[1] }; })
+    .filter(function (p) { return p.title !== '' || p.content !== ''; });
   if (!list.length) return [];
   var idx = Math.max(0, daysSinceStart_(date)) * 2;
   if (list.length === 1) return [list[0]];
