@@ -97,7 +97,7 @@
     .card.glow-pulse { animation: glowPulse 1s ease-out; }
 
     label { display: block; font-size: 0.82rem; color: var(--ink-soft); margin-top: 12px; }
-    input[type=number], input[type=text], input[type=date], select {
+    input[type=number], input[type=text], input[type=date], input[type=time], select {
       width: 100%; padding: 10px 12px; border: 1px solid var(--border);
       background: var(--field-bg); color: var(--ink);
       border-radius: 8px; font-size: 0.95rem; margin-top: 5px;
@@ -406,6 +406,17 @@
           <input type="date" id="newEventDate">
           <label>Title</label>
           <input type="text" id="newEventTitle" placeholder="Event title">
+          <div class="row">
+            <div>
+              <label>Start time</label>
+              <input type="time" id="newEventStart">
+            </div>
+            <div>
+              <label>End time</label>
+              <input type="time" id="newEventEnd">
+            </div>
+          </div>
+          <div class="sub" style="margin-top:6px;">Leave both blank for an all-day event.</div>
           <label>Description</label>
           <input type="text" id="newEventDescription" placeholder="optional">
           <button class="secondary" onclick="addCalendarEvent()">Add Event</button>
@@ -878,10 +889,16 @@
       var dateInput = document.getElementById('newEventDate');
       var titleInput = document.getElementById('newEventTitle');
       var descInput = document.getElementById('newEventDescription');
+      var startInput = document.getElementById('newEventStart');
+      var endInput = document.getElementById('newEventEnd');
       var statusEl = document.getElementById('addEventStatus');
 
       if (!dateInput.value || !titleInput.value.trim()) {
         statusEl.textContent = 'Date and title are both required.';
+        return;
+      }
+      if (!!startInput.value !== !!endInput.value) {
+        statusEl.textContent = 'Set both a start and end time, or leave both blank for an all-day event.';
         return;
       }
 
@@ -891,12 +908,14 @@
           statusEl.textContent = 'Added ✓';
           titleInput.value = '';
           descInput.value = '';
+          startInput.value = '';
+          endInput.value = '';
           renderCalendar(summary);
         })
         .withFailureHandler(function (err) {
           statusEl.textContent = 'Could not add event (' + err.message + ')';
         })
-        .clientAddCalendarEvent(dateInput.value, titleInput.value.trim(), descInput.value);
+        .clientAddCalendarEvent(dateInput.value, titleInput.value.trim(), descInput.value, startInput.value, endInput.value);
     }
 
     wireAutosave();

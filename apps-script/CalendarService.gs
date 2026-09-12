@@ -14,10 +14,16 @@
 
 function getEventsFromCalendar_(cal, date, sourceLabel) {
   return cal.getEventsForDay(date).map(function (e) {
+    var allDay = e.isAllDayEvent();
+    var start = allDay
+      ? 'All day'
+      : Utilities.formatDate(e.getStartTime(), Session.getScriptTimeZone(), 'h:mm a') +
+        ' – ' + Utilities.formatDate(e.getEndTime(), Session.getScriptTimeZone(), 'h:mm a');
     return {
       title: e.getTitle(),
-      start: Utilities.formatDate(e.getStartTime(), Session.getScriptTimeZone(), 'h:mm a'),
+      start: start,
       startMs: e.getStartTime().getTime(),
+      allDay: allDay,
       source: sourceLabel
     };
   });
@@ -58,18 +64,36 @@ function getCalendarSummaryForToday() {
   };
 }
 
+/** Combines a day-only Date with an "HH:MM" time-of-day string from an <input type="time">. */
+function combineDateAndTime_(date, timeStr) {
+  var parts = String(timeStr).split(':').map(Number);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), parts[0] || 0, parts[1] || 0);
+}
+
 /**
- * Manually adds an all-day event to any date, from the app's "Add an Event"
- * form. Always goes to your default calendar — the school one (if
+ * Manually adds an event to any date, from the app's "Add an Event" form.
+ * With both startTime and endTime ("HH:MM" strings) it creates a timed
+ * event; leaving either blank creates an all-day event, same as before —
+ * so existing calls with just (dateStr, title, description) still work
+ * unchanged. Always goes to your default calendar — the school one (if
  * configured) is read-only, same as the share it's read through. Returns
  * today's summary either way, since that's what the Calendar tab is showing
  * (adding an event for a different day won't visibly change it, and that's
  * fine — the new event still exists on the calendar for that day).
  */
-function createCalendarEvent(dateStr, title, description) {
+function createCalendarEvent(dateStr, title, description, startTime, endTime) {
   title = String(title || '').trim();
   if (!dateStr || !title) return getCalendarSummaryForToday();
   var date = parseDate_(dateStr);
-  CalendarApp.getDefaultCalendar().createAllDayEvent(title, date, { description: description || '' });
+  var cal = CalendarApp.getDefaultCalendar();
+
+  if (startTime && endTime) {
+    var start = combineDateAndTime_(date, startTime);
+    var end = combineDateAndTime_(date, endTime);
+    if (end <= start) end = new Date(start.getTime() + 60 * 60 * 1000); // end wasn't after start — default to 1hr
+    cal.createEvent(title, start, end, { description: description || '' });
+  } else {
+    cal.createAllDayEvent(title, date, { description: description || '' });
+  }
   return getCalendarSummaryForToday();
 }

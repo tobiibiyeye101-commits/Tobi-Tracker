@@ -74,6 +74,6 @@ function clientGetCalendar() {
   return getCalendarSummaryForToday();
 }
 
-function clientAddCalendarEvent(dateStr, title, description) {
-  return createCalendarEvent(dateStr, title, description);
+function clientAddCalendarEvent(dateStr, title, description, startTime, endTime) {
+  return createCalendarEvent(dateStr, title, description, startTime, endTime);
 }
