@@ -138,6 +138,16 @@
       border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px;
       font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
     }
+    .nav-row { display: flex; align-items: center; gap: 10px; }
+    .icon-btn {
+      background: transparent; color: var(--ink-soft); border: 1px solid var(--border);
+      border-radius: 999px; width: 30px; height: 30px; padding: 0; margin: 0;
+      font-size: 1.05rem; line-height: 1; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+    .icon-btn:hover { background: rgba(242,237,228,0.05); color: var(--ink); transform: none; }
+    .icon-btn:disabled { opacity: 0.32; cursor: default; }
+    .icon-btn:disabled:hover { background: transparent; color: var(--ink-soft); }
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; font-variant-numeric: tabular-nums; }
     th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--border); color: var(--ink-soft); }
     th { color: var(--ink-faint); font-weight: 600; font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -254,12 +264,17 @@
 
       <div class="card">
         <h2>First Batch — Current Message</h2>
-        <span class="pill" id="set1Pill"></span>
+        <div class="nav-row">
+          <button type="button" class="icon-btn" id="set1Prev" aria-label="Previous part">‹</button>
+          <span class="pill" id="set1Pill"></span>
+          <button type="button" class="icon-btn" id="set1Next" aria-label="Next part">›</button>
+        </div>
         <div class="msg" id="set1Message" style="margin-top:8px;"></div>
         <div class="check">
           <input type="checkbox" id="set1Done">
           <label for="set1Done" style="margin:0;">Listened to it</label>
         </div>
+        <div class="sub" style="margin-top:8px;">"Next" unlocks once today's part is ticked.</div>
       </div>
 
       <div class="card">
@@ -426,6 +441,8 @@
       document.getElementById('set1Pill').textContent = 'Part ' + ctx.set1Index + ' of ' + ctx.set1Total;
       document.getElementById('set1Message').textContent = ctx.set1Message;
       document.getElementById('set1Done').checked = ctx.set1Done;
+      document.getElementById('set1Prev').disabled = ctx.set1Index <= 1;
+      document.getElementById('set1Next').disabled = !(ctx.set1Done && ctx.set1Index < ctx.set1Total);
 
       document.getElementById('set2Pill').textContent = 'Message ' + ctx.set2Index + ' of ' + ctx.set2Total;
       document.getElementById('set2Message').textContent = ctx.set2Message;
@@ -574,6 +591,8 @@
     function updateProgressUI() {
       if (!latest) return;
       var set1Done = document.getElementById('set1Done').checked;
+      var set1Next = document.getElementById('set1Next');
+      if (set1Next) set1Next.disabled = !(set1Done && latest.set1Index < latest.set1Total);
       var set2Started = Number(document.getElementById('set2Minutes').value || 0) > 0;
       var rhapsodyDone = document.getElementById('rhapsodyDone').checked;
       var bibleDone = document.getElementById('bibleDone').checked;
@@ -718,45 +737,25 @@
       google.script.run.withSuccessHandler(onLoaded).clientAdvanceSet2();
     }
 
-    // ---- First Batch: only moves to the next part once today's part is
-    // ticked. Unlike Second Batch (a manual button), this rides the same
-    // checkbox wireAutosave already watches — so on check (not uncheck) we
-    // commit today's log first (so set1Done actually lands in Daily_Log
-    // before we ask what "today" looks like), *then* advance the pointer,
-    // then reload from the fresh context. Doing it in that order means
-    // ctx.set1Done reads back true instead of racing the debounced autosave.
-    function wireSet1Advance() {
-      var el = document.getElementById('set1Done');
-      if (!el) return;
-      el.addEventListener('change', function () {
-        if (!el.checked) return; // only advance on check, not uncheck
-        if (saveTimer) clearTimeout(saveTimer);
-        saveTimer = null;
-        saving = true;
-        var statusEl = document.getElementById('status');
-        statusEl.textContent = 'Saving…';
-        google.script.run
-          .withSuccessHandler(function () {
-            google.script.run
-              .withSuccessHandler(function (ctx) {
-                saving = false;
-                onLoaded(ctx);
-                statusEl.textContent = 'Saved ✓ · ' + new Date().toLocaleTimeString();
-                if (dirtyWhileSaving) { dirtyWhileSaving = false; scheduleAutosave(); }
-              })
-              .withFailureHandler(function (err) {
-                saving = false;
-                statusEl.textContent = 'Could not advance (' + err.message + ')';
-              })
-              .clientAdvanceSet1();
-          })
-          .withFailureHandler(function (err) {
-            saving = false;
-            statusEl.textContent = 'Could not save — will retry (' + err.message + ')';
-            scheduleAutosave();
-          })
-          .clientSaveLog(collectEntry());
-      });
+    // ---- First Batch navigation: "Listened to it" is just a plain daily
+    // flag now (wireAutosave/wireCompletionCue already cover it, same as
+    // Rhapsody/Bible) — it never moves the pointer itself. These two
+    // buttons are the only way the current part changes, in either
+    // direction, so advancing can never happen as a side effect of ticking
+    // or re-ticking the checkbox. Next stays disabled until today's part is
+    // ticked (see updateProgressUI/onLoaded); Previous is always available
+    // as real recovery from landing on the wrong part.
+    function set1Next_() {
+      google.script.run.withSuccessHandler(onLoaded).clientAdvanceSet1();
+    }
+    function set1Prev_() {
+      google.script.run.withSuccessHandler(onLoaded).clientRetreatSet1();
+    }
+    function wireSet1Nav() {
+      var prev = document.getElementById('set1Prev');
+      var next = document.getElementById('set1Next');
+      if (prev) prev.addEventListener('click', set1Prev_);
+      if (next) next.addEventListener('click', set1Next_);
     }
 
     function updateBiblePointer() {
@@ -902,7 +901,7 @@
 
     wireAutosave();
     wireCompletionCue();
-    wireSet1Advance();
+    wireSet1Nav();
     wireGymAutosave();
     wireTabs();
     document.getElementById('todoNewTask').addEventListener('keydown', function (e) {

@@ -31,6 +31,11 @@ function clientAdvanceSet1() {
   return getTodayContext();
 }
 
+function clientRetreatSet1() {
+  retreatSet1Message();
+  return getTodayContext();
+}
+
 function clientAdvanceSet2() {
   advanceSet2Message();
   return getTodayContext();

@@ -179,10 +179,58 @@ function advanceMessageSheet_(sheet, currentIndex, messages) {
   return nextIndex;
 }
 
+/**
+ * Set 1's "Listened to it" checkbox is just a plain daily flag (like
+ * Rhapsody/Bible) — it never moves the pointer itself. Moving to a
+ * different part (either direction, see below) always clears today's flag
+ * for the same reason: it always means "have I listened to whichever part
+ * is showing now", and that answer resets the moment the part changes.
+ * Column D is "Set1 Done" in Daily_Log's fixed header order (see
+ * ARCHITECTURE.md's Daily_Log column table) — a no-op if today has no row
+ * yet, since getTodayContext() already reads a missing row as not-done.
+ */
+function resetSet1DoneForToday_() {
+  var sheet = getDailyLogSheet_();
+  var row = findRowForDate_(sheet, dateKey_(todayDate_()));
+  if (row === -1) return;
+  sheet.getRange(row, 4).setValue('No');
+}
+
 function advanceSet1Message() {
   var pointers = getPointers_();
   pointers.set1Index = advanceMessageSheet_(getSet1Sheet_(), pointers.set1Index, SET1_MESSAGES);
   savePointers_(pointers);
+  resetSet1DoneForToday_();
+  return pointers;
+}
+
+/**
+ * The "‹ Previous" side of Set 1's navigation — real recovery for landing
+ * on the wrong part, not just a preview. Moves the pointer back one slot;
+ * the part being left is relabeled Not Started unless it already has a
+ * Completed Date (in which case it's genuinely done, so it stays labeled
+ * Done) — either way its Completed Date cell itself is never touched, so
+ * real completion history can't be lost by browsing back over it.
+ */
+function retreatSet1Message() {
+  var pointers = getPointers_();
+  var newIndex = Math.max(1, pointers.set1Index - 1);
+  if (newIndex !== pointers.set1Index) {
+    var sheet = getSet1Sheet_();
+    var lastRow = sheet.getLastRow();
+    var data = sheet.getRange(2, 1, lastRow - 1, 4).getValues(); // Order, Title, Status, Completed Date
+    data.forEach(function (r, i) {
+      if (r[0] === pointers.set1Index) {
+        sheet.getRange(i + 2, 3).setValue(r[3] ? 'Done' : 'Not Started');
+      }
+      if (r[0] === newIndex) {
+        sheet.getRange(i + 2, 3).setValue('Current');
+      }
+    });
+    pointers.set1Index = newIndex;
+    savePointers_(pointers);
+    resetSet1DoneForToday_();
+  }
   return pointers;
 }
 
