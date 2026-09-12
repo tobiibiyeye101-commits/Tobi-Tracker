@@ -87,6 +87,18 @@
       letter-spacing: 0.06em; text-transform: uppercase;
       margin: 0 0 14px; color: var(--ink-faint);
     }
+    .card h2.card-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; margin-bottom: 14px;
+    }
+    .card.collapsed h2.card-toggle { margin-bottom: 0; }
+    .card h2.card-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+    .card-chevron {
+      font-size: 0.9rem; color: var(--ink-faint); flex-shrink: 0; margin-left: 10px;
+      transition: transform 0.2s ease;
+    }
+    .card.collapsed .card-chevron { transform: rotate(-90deg); }
+    .card.collapsed .card-body { display: none; }
     .card.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.55s ease, transform 0.55s ease; }
     .card.reveal.in-view { opacity: 1; transform: translateY(0); }
     @keyframes glowPulse {
@@ -348,7 +360,7 @@
         <input type="number" id="pCampus" min="0">
       </div>
 
-      <div class="card">
+      <div class="card" data-collapsed>
         <h2>Prayer Points — <span id="prayerPointsLabel">today's two</span></h2>
         <div id="prayerPointsList"></div>
         <div class="sub" style="margin-top:10px;">Edit this list any time in the Prayer_Points sheet.</div>
@@ -361,7 +373,7 @@
         <div id="status">Everything above saves automatically as you go.</div>
       </div>
 
-      <div class="card">
+      <div class="card" data-collapsed>
         <h2>Last 14 Days</h2>
         <table id="historyTable">
           <thead><tr><th>Date</th><th>Set1</th><th>Set2 min</th><th>Rhapsody</th><th>Prayer</th></tr></thead>
@@ -402,7 +414,7 @@
           <div id="calendarEvents"></div>
         </div>
 
-        <div class="card">
+        <div class="card" data-collapsed>
           <h2>Add an Event</h2>
           <label>Date</label>
           <input type="date" id="newEventDate">
@@ -844,6 +856,57 @@
       });
     }
 
+    // ---- Collapsible cards ---------------------------------------------------
+    // Every card (across all four tabs) except the always-visible progress
+    // summary gets a click/tap-to-collapse header — this runs once at
+    // startup, wrapping whatever's already in each card's markup into a
+    // hideable body rather than needing every card's HTML restructured by
+    // hand. A card marked data-collapsed in the HTML starts closed; the
+    // rest start open. IDs inside a collapsed card are untouched by this
+    // (just relocated into the wrapper), so onLoaded()/renderX() calls that
+    // target them by getElementById keep working exactly as before.
+    function setCardCollapsed_(card, collapsed) {
+      card.classList.toggle('collapsed', collapsed);
+      var heading = card.querySelector('h2.card-toggle');
+      if (heading) heading.setAttribute('aria-expanded', String(!collapsed));
+    }
+
+    function makeCardsCollapsible() {
+      document.querySelectorAll('#app .card').forEach(function (card) {
+        if (card.id === 'progressCard') return; // compact summary, always visible
+        var heading = card.querySelector('h2');
+        if (!heading) return;
+
+        var titleWrap = document.createElement('span');
+        titleWrap.className = 'card-title-text';
+        while (heading.firstChild) titleWrap.appendChild(heading.firstChild);
+
+        var chevron = document.createElement('span');
+        chevron.className = 'card-chevron';
+        chevron.setAttribute('aria-hidden', 'true');
+        chevron.textContent = '⌄';
+
+        heading.appendChild(titleWrap);
+        heading.appendChild(chevron);
+        heading.classList.add('card-toggle');
+        heading.setAttribute('role', 'button');
+        heading.setAttribute('tabindex', '0');
+
+        var body = document.createElement('div');
+        body.className = 'card-body';
+        while (heading.nextSibling) body.appendChild(heading.nextSibling);
+        card.appendChild(body);
+
+        setCardCollapsed_(card, card.hasAttribute('data-collapsed'));
+
+        function toggle() { setCardCollapsed_(card, !card.classList.contains('collapsed')); }
+        heading.addEventListener('click', toggle);
+        heading.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+      });
+    }
+
     // ---- Calendar -----------------------------------------------------------
     function loadCalendar() {
       document.getElementById('calendarEvents').innerHTML = '<div class="todo-empty">Loading…</div>';
@@ -923,6 +986,7 @@
         .clientAddCalendarEvent(dateInput.value, titleInput.value.trim(), descInput.value, startInput.value, endInput.value);
     }
 
+    makeCardsCollapsible();
     wireAutosave();
     wireCompletionCue();
     wireSet1Nav();

@@ -94,6 +94,10 @@ matching the share.
   per component.
 - Hit **Save today's log**. The Daily_Log tab in the spreadsheet is the full history —
   the web app's "Last 14 Days" table is a quick view of the same data.
+- Every card (in every tab) can be collapsed by tapping its header — a few start
+  collapsed by default (Prayer Points, Last 14 Days, Add an Event) since they're used
+  less often day to day; the rest start open. Nothing here is remembered between visits,
+  so the page always opens with those same defaults.
 
 ## Adjusting things later
 
