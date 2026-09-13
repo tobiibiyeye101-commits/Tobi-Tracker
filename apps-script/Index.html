@@ -774,10 +774,18 @@
     // ticked (see updateProgressUI/onLoaded); Previous is always available
     // as real recovery from landing on the wrong part.
     function set1Next_() {
-      google.script.run.withSuccessHandler(onLoaded).clientAdvanceSet1();
+      var statusEl = document.getElementById('status');
+      google.script.run
+        .withSuccessHandler(onLoaded)
+        .withFailureHandler(function (err) { statusEl.textContent = 'Could not move to the next part (' + err.message + ')'; })
+        .clientAdvanceSet1();
     }
     function set1Prev_() {
-      google.script.run.withSuccessHandler(onLoaded).clientRetreatSet1();
+      var statusEl = document.getElementById('status');
+      google.script.run
+        .withSuccessHandler(onLoaded)
+        .withFailureHandler(function (err) { statusEl.textContent = 'Could not go back a part (' + err.message + ')'; })
+        .clientRetreatSet1();
     }
     function wireSet1Nav() {
       var prev = document.getElementById('set1Prev');
