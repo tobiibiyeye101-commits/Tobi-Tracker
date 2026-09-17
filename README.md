@@ -25,14 +25,14 @@ about before you turn it on.
 | **Prayer Points** | A Title + Content pair per point, edited in the `Prayer_Points` sheet — the app shows 2 per day on a rotation through the list. |
 | **Gym** | One row per day (like Daily_Log) — a free-text "today's set" plus a Done checkbox, since the split just varies by what you type. |
 | **Calendar** | Shows what's on your default Google Calendar today, and lets you add a new event (any date, title, optional time, optional description) straight from the app. |
-| **Assistant** *(optional)* | A Gemini-powered "what actually needs attention" briefing, on demand or folded into the 3 daily emails, a free-text question box, and a daily Progress Log written to a running Google Doc. See "AI Assistant" below — nothing here works until you add a (free) API key. |
+| **Assistant / S.T.E.W.A.R.D.** *(optional)* | A Gemini-powered "what actually needs attention" briefing, a real chat thread, a daily Progress Log written to a running Google Doc, and — the one proactive piece — a Daily Secretary Briefing pushed to Google Chat every morning. See "AI Assistant" below — nothing here works until you add a (free) API key. |
 
 ## One-time setup (~10 minutes)
 
 1. **Create the project.** Go to [script.google.com](https://script.google.com) → New project.
 2. **Copy in the files.** For each file in `apps-script/` (`Config.gs`, `SheetSetup.gs`,
-   `DataService.gs`, `EmailService.gs`, `CalendarService.gs`, `AiAssistant.gs`, `WebApp.gs`,
-   `Index.html`, `appsscript.json`):
+   `DataService.gs`, `EmailService.gs`, `CalendarService.gs`, `AiAssistant.gs`, `ChatService.gs`,
+   `WebApp.gs`, `Index.html`, `appsscript.json`):
    - In the Apps Script editor, click the **+** next to Files → **Script** (for `.gs` files)
      or **HTML** (for `Index.html`) → name it to match (drop the `.gs` extension when naming).
    - Paste the file's contents in.
@@ -89,17 +89,22 @@ merges events from both and labels each with a small "You"/"School" pill. New ev
 "Add an Event" still always go to your default calendar — the school one stays read-only,
 matching the share.
 
-## AI Assistant (optional)
+## AI Assistant — S.T.E.W.A.R.D. (optional)
 
 `AiAssistant.gs` hands everything else in this project already tracks — today's
-status, open to-dos, the next couple of days on the calendar — to the **Gemini
-API**. Two things:
+status, open to-dos, the calendar, blocked study/reading time — to the **Gemini
+API**. Named S.T.E.W.A.R.D. (Schedule Tracking & Event Watch for Assignments,
+Reminders, and Deadlines) for the one piece of it that's actually proactive.
+Four things:
 
-- **A priority briefing / ad-hoc Q&A** — what actually needs attention, in
-  order, instead of just listing everything. Lives in the app's **Assistant**
-  tab (a "Get today's briefing" button plus a free-text "Ask" box), and —
-  once set up — a short version is folded into the top of all three daily
-  reminder emails.
+- **A priority briefing / Chat with STEWARD** — what actually needs attention,
+  in order, instead of just listing everything, plus a real back-and-forth
+  chat thread for ad-hoc questions ("what should I prioritize this evening?",
+  then "what about tomorrow?" as a natural follow-up). Both live in the app's
+  **Assistant** tab; a short version of the briefing is also folded into the
+  top of all three daily reminder emails. The chat's history lives only in
+  that browser tab for that sitting — nothing persists across a reload, and
+  each call is still stateless on the server side underneath.
 - **A daily Progress Log** — a running Google Doc ("Tobi Spiritual Progress
   Tracker — Daily Log", created automatically the first time it's used, same
   as the Sheet) with one short, journal-style entry per day, written from
@@ -109,18 +114,38 @@ API**. Two things:
   today's entry" button in the Assistant tab for on demand/after the fact.
   Running it more than once in a day updates that day's entry rather than
   adding a duplicate.
+- **The Daily Secretary Briefing** — the one proactive piece: a single message
+  pushed to **Google Chat** every morning at 7am (piggybacked on the existing
+  morning email trigger, no new trigger to create), rather than waiting for
+  you to open the app. Weekdays: today's calendar plus a short lookahead (so
+  anything 2 days out gets flagged early), open to-dos, and any study/reading
+  time blocked on the calendar. Weekends: all of that, plus a light look at
+  the week ahead against your baseline goals doc (see below). If Gemini is
+  unavailable or rate-limited that day, it falls back to a plain, rule-based
+  version (just the calendar and to-dos, no reasoning) rather than sending
+  nothing — a real deadline shouldn't go silently missing over a quota outage.
+  This message is Chat-only — nothing from it is logged in the app.
+- **Study/reading time awareness** — calendar events get flagged as study
+  time by keyword match (`STUDY_EVENT_KEYWORDS` in `AiAssistant.gs`, default
+  `['study', 'reading']`, matched case-insensitively anywhere in the title —
+  e.g. "CVL 905 Study" or "ECN 503 Reading" both match). No new place to enter
+  this — just title your calendar blocks so one of the keywords appears, and
+  the Secretary Briefing's conflict/prep reasoning picks it up automatically.
+  Add to the keyword list directly if your naming ever includes something else.
 
 This is genuinely optional. Nothing else in the project depends on it, and
 skipping this whole section leaves everything else exactly as described above.
 
 **Why Gemini and not something else:** [Google AI Studio](https://aistudio.google.com)
 gives Gemini a real free tier — no billing account needed — generous enough that
-a personal project's handful of calls a day (a few emails plus the odd "Ask") never
-comes close to its limits. It's the one piece of this project that calls something
-outside your Google account, so it's worth knowing that's happening even though it
-costs nothing in practice.
+a personal project's handful of calls a day never comes close to its limits.
+It's the one piece of this project that calls something outside your Google
+account, so it's worth knowing that's happening even though it costs nothing
+in practice. Free-tier quotas do shift over time and are project-specific —
+worth a quick check of your AI Studio dashboard now and then, especially if
+you add more AI-backed features later.
 
-**Setup (2 minutes):**
+**Setup (2 minutes) — briefing/chat/Progress Log:**
 1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey), sign in
    with your Google account, and create an API key. No billing setup needed for the
    free tier.
@@ -129,22 +154,48 @@ costs nothing in practice.
    select `_setGeminiKey` from the function dropdown, run it once, then delete the
    function. (Same pattern as `setWebAppUrl()` in step 5 above.)
 
-That's it — no new trigger, no redeploy needed just for this. The **Assistant**
-tab and the emails both pick it up immediately. Without a key set, the Assistant
-tab shows a clear "no API key" message instead of failing silently, and the
-emails just quietly skip the briefing (and the Progress Log entry) and send
-exactly as before — a bad key, a rate limit, or Gemini/Docs being briefly down
-never breaks the reminder emails themselves, only those extra pieces.
+That's it for the Assistant tab and the emails — no new trigger, no redeploy
+needed just for this. Without a key set, the Assistant tab shows a clear "no
+API key" message instead of failing silently, and the emails just quietly
+skip the briefing (and the Progress Log entry) and send exactly as before —
+a bad key, a rate limit, or Gemini/Docs being briefly down never breaks the
+reminder emails themselves, only those extra pieces.
 
-The first time anything in this file actually runs (the Assistant tab, or the
-evening email once a key is set), Google will show a fresh authorization
-screen for Google Docs access — same click-through as when Calendar access
-was added, no separate account or connector, just one more permission on the
-same Google account everything else already uses.
+**Setup (2 more minutes) — the Daily Secretary Briefing, additionally needs a
+Google Chat webhook:**
+1. In Google Chat, create a Space (any name — "STEWARD" works fine).
+2. Space settings → Apps & integrations → Webhooks → add one, copy its URL.
+3. In the Apps Script editor: `function _setChatWebhook(){ setGoogleChatWebhookUrl('PASTE_URL_HERE'); }`,
+   run it once, then delete it. (Same pattern as step 2 above, in `ChatService.gs`.)
 
-To change the model (`GEMINI_MODEL` in `AiAssistant.gs`) or how far ahead it
-looks on the calendar (`ASSISTANT_CALENDAR_LOOKAHEAD_DAYS`, 2 days by default),
-edit those constants directly.
+Without a webhook set, `sendDailySecretaryBriefing()` fails quietly (caught in
+`sendMorningEmail()`) and the 7am email still sends normally — just no Chat
+message that day.
+
+The first time anything in `AiAssistant.gs` actually runs, Google will show a
+fresh authorization screen for **Google Docs** access (Progress Log) — same
+click-through as when Calendar access was added, just one more permission on
+the same account. The weekend baseline-goals lookup is a bigger ask: it needs
+**Drive search** access (`DriveApp`), broader than the Docs-only access the
+Progress Log uses, since finding a doc by title means being able to see across
+your Drive rather than only files this project created itself. Still the same
+one Google account, still free — just worth knowing it's a wider permission
+than everything else here asks for.
+
+**What "baseline goals" needs:** a Google Doc titled starting with
+`00 - BASELINE` (matches `BASELINE_DOC_TITLE_PREFIX` in `AiAssistant.gs`) —
+the weekend briefing reads whichever one was modified most recently, so
+recreating it with a new date in the title (rather than editing in place)
+still gets picked up correctly. No such doc yet → the weekend briefing just
+skips that section rather than failing. (Reading your separate Daily
+Update / Weekly Review docs from an existing manual Claude practice was
+considered for this same weekend slot but isn't built yet — those weren't
+in a state this could safely build against yet. Baseline-only for now.)
+
+To change the model (`GEMINI_MODEL`), the assistant/chat's calendar lookahead
+(`ASSISTANT_CALENDAR_LOOKAHEAD_DAYS`, 2 days), or the Secretary Briefing's own
+lookahead (`SECRETARY_CALENDAR_LOOKAHEAD_DAYS`, 3 days) — all in
+`AiAssistant.gs` — edit those constants directly.
 
 ## Using it day to day
 
@@ -160,7 +211,9 @@ edit those constants directly.
   so the page always opens with those same defaults.
 - If you've set up the AI Assistant, the **Assistant** tab's "Get today's briefing"
   button (or the top of each reminder email) is the fastest way to see what actually
-  needs attention today rather than reading every card yourself.
+  needs attention today rather than reading every card yourself. If you've also set
+  up the Chat webhook, a fuller Daily Secretary Briefing lands in Google Chat every
+  morning on its own — nothing to open for that one.
 
 ## Adjusting things later
 

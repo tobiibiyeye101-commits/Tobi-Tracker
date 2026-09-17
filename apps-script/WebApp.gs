@@ -85,8 +85,8 @@ function clientGetSmartBriefing() {
   return generateSmartBriefing();
 }
 
-function clientAskAssistant(question) {
-  return askAssistant(question);
+function clientAskAssistant(question, history) {
+  return askAssistant(question, history);
 }
 
 function clientWriteProgressLog() {

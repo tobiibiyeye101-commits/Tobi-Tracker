@@ -243,6 +243,20 @@
     .assistant-output:empty { display: none; }
     .assistant-output.loading { color: var(--ink-faint); font-style: italic; }
     .assistant-output.error { color: #e3a3a3; border-color: rgba(227,163,163,0.35); }
+
+    .chat-thread {
+      display: flex; flex-direction: column; gap: 10px;
+      margin-top: 4px; margin-bottom: 14px; max-height: 360px; overflow-y: auto;
+    }
+    .chat-thread:empty { display: none; }
+    .chat-bubble {
+      padding: 10px 14px; border-radius: 10px; font-size: 0.9rem;
+      line-height: 1.5; max-width: 88%; white-space: pre-wrap;
+    }
+    .chat-bubble.user { align-self: flex-end; background: var(--accent); color: #14120e; }
+    .chat-bubble.steward { align-self: flex-start; background: var(--field-bg); border: 1px solid var(--border); color: var(--ink); }
+    .chat-bubble.steward.loading { color: var(--ink-faint); font-style: italic; }
+    .chat-bubble.steward.error { color: #e3a3a3; border-color: rgba(227,163,163,0.35); }
   </style>
 </head>
 <body>
@@ -459,11 +473,11 @@
         </div>
 
         <div class="card">
-          <h2>Ask</h2>
-          <label>Ask about your schedule or what's left today</label>
+          <h2>Chat with STEWARD</h2>
+          <div class="sub">Ask about your schedule or what's left today — follow-up questions like "what about tomorrow?" work within this sitting.</div>
+          <div id="chatThread" class="chat-thread"></div>
           <input type="text" id="assistantQuestion" placeholder="e.g. what should I prioritize this evening?">
           <button class="secondary" onclick="askAssistantQuestion()">Ask</button>
-          <div id="assistantAnswer" class="assistant-output"></div>
         </div>
 
         <div class="card">
@@ -1049,23 +1063,61 @@
         .clientGetSmartBriefing();
     }
 
+    // Chat with STEWARD: a real thread, not a single most-recent-answer box.
+    // History lives only in this array (this sitting, this tab) — nothing
+    // persists across a reload, and each call is still stateless server-side;
+    // recent turns just get folded into the prompt text (see askAssistant()
+    // in AiAssistant.gs). Capped so the prompt doesn't grow unbounded across
+    // a long chat.
+    var CHAT_HISTORY_LIMIT = 5;
+    var stewardChatHistory = [];
+
+    function renderChatThread_() {
+      var thread = document.getElementById('chatThread');
+      thread.innerHTML = '';
+      stewardChatHistory.forEach(function (turn) {
+        var userBubble = document.createElement('div');
+        userBubble.className = 'chat-bubble user';
+        userBubble.textContent = turn.question;
+        thread.appendChild(userBubble);
+
+        var stewardBubble = document.createElement('div');
+        stewardBubble.className = 'chat-bubble steward' + (turn.pending ? ' loading' : (turn.error ? ' error' : ''));
+        stewardBubble.textContent = turn.pending ? 'Thinking…' : turn.answer;
+        thread.appendChild(stewardBubble);
+      });
+      thread.scrollTop = thread.scrollHeight;
+    }
+
     function askAssistantQuestion() {
       var input = document.getElementById('assistantQuestion');
       var question = input.value.trim();
       if (!question) return;
-      var out = document.getElementById('assistantAnswer');
-      out.className = 'assistant-output loading';
-      out.textContent = 'Thinking…';
+      input.value = '';
+
+      // prior turns only (not this one), already capped from the last push
+      var historyForServer = stewardChatHistory.slice(-CHAT_HISTORY_LIMIT).map(function (t) {
+        return { question: t.question, answer: t.answer };
+      });
+
+      var turn = { question: question, answer: '', pending: true };
+      stewardChatHistory.push(turn);
+      if (stewardChatHistory.length > CHAT_HISTORY_LIMIT) stewardChatHistory.shift();
+      renderChatThread_();
+
       google.script.run
         .withSuccessHandler(function (text) {
-          out.className = 'assistant-output';
-          out.textContent = text;
+          turn.pending = false;
+          turn.answer = text;
+          renderChatThread_();
         })
         .withFailureHandler(function (err) {
-          out.className = 'assistant-output error';
-          out.textContent = 'Could not get an answer (' + err.message + ')';
+          turn.pending = false;
+          turn.error = true;
+          turn.answer = 'Could not get an answer (' + err.message + ')';
+          renderChatThread_();
         })
-        .clientAskAssistant(question);
+        .clientAskAssistant(question, historyForServer);
     }
 
     function writeProgressLog() {

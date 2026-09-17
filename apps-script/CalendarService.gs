@@ -4,12 +4,15 @@
  * Links the tracker to your default Google Calendar (CalendarApp — built
  * into Apps Script, no extra setup or API key), plus an optional second,
  * read-only calendar (SCHOOL_CALENDAR_ID in Config.gs) for a schedule that
- * lives on a different Google account, like a school one. Two things:
+ * lives on a different Google account, like a school one. Three things:
  *   1. getCalendarSummaryForToday() — what's on your calendar(s) today, for
  *      display in the app.
  *   2. createCalendarEvent() — manually add an event, any date, from the
  *      app's "Add an Event" form. Always writes to your default calendar —
  *      the school calendar is read-only from here, same as the share is.
+ *   3. getUpcomingCalendarEvents_() — a multi-day lookahead (each event
+ *      carries durationMinutes/allDay too) that AiAssistant.gs uses for
+ *      the priority briefing and to total up study/reading time.
  */
 
 function getEventsFromCalendar_(cal, date, sourceLabel) {
@@ -23,6 +26,9 @@ function getEventsFromCalendar_(cal, date, sourceLabel) {
       title: e.getTitle(),
       start: start,
       startMs: e.getStartTime().getTime(),
+      // 0 for all-day events — an all-day block isn't a study-time duration,
+      // and AiAssistant.gs's summarizeStudyBlocks_() skips allDay entirely.
+      durationMinutes: allDay ? 0 : Math.round((e.getEndTime().getTime() - e.getStartTime().getTime()) / 60000),
       allDay: allDay,
       source: sourceLabel
     };
@@ -67,7 +73,10 @@ function getUpcomingCalendarEvents_(days) {
     var dayResult = getTodayCalendarEvents_(d);
     var dateLabel = i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : Utilities.formatDate(d, Session.getScriptTimeZone(), 'EEEE'));
     dayResult.events.forEach(function (e) {
-      results.push({ dateLabel: dateLabel, start: e.start, title: e.title, source: e.source });
+      results.push({
+        dateLabel: dateLabel, start: e.start, title: e.title, source: e.source,
+        durationMinutes: e.durationMinutes, allDay: e.allDay
+      });
     });
     if (dayResult.schoolError && !schoolError) schoolError = dayResult.schoolError;
   }

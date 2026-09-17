@@ -35,7 +35,8 @@ Apps Script project (bound to that Sheet)
  ├─ DataService.gs    — all reads/writes to the Sheet + the pure-logic rules
  ├─ EmailService.gs   — builds/sends the 3 daily emails, owns all triggers
  ├─ CalendarService.gs — reads today's events + creates new ones on request
- ├─ AiAssistant.gs    — optional Gemini-backed briefing/Q&A + daily Progress Log, see below
+ ├─ AiAssistant.gs    — optional Gemini-backed briefing/chat/Progress Log/Secretary Briefing, see below
+ ├─ ChatService.gs    — Google Chat webhook delivery for the Secretary Briefing
  ├─ WebApp.gs         — doGet() entry point + the functions the page can call
  └─ Index.html        — the tabbed logging page itself (served by WebApp.gs)
 ```
@@ -55,18 +56,20 @@ scope for the read/create it still does.)
 
 `AiAssistant.gs` is the other file that reaches outside this Sheet, and the
 only one that leaves Google entirely: `UrlFetchApp.fetch()` to the Gemini
-API. Entirely optional (nothing else depends on it) and entirely on-demand
-— it only ever runs when the Assistant tab's briefing/Ask/Progress-Log
-button is used, or a reminder email is being built, never on a timer of its
-own. Reads the same `getTodayContext()` everything else uses plus a
-multi-day calendar lookahead (`getUpcomingCalendarEvents_()` in
-`CalendarService.gs`, which `getTodayContext()` itself doesn't need since
-it only ever cares about today). `EmailService.gs`'s
-`assistantBriefingHtml_()`/`progressLogUrlSafely_()` both wrap their call in
-a try/catch specifically so a missing API key, a rate limit, or Gemini/Docs
-being briefly down can never break the reminder emails themselves — they
-just silently omit that one piece. The web app's Assistant tab, by
-contrast, lets a real failure surface to the person looking right at it.
+API. Entirely optional (nothing else depends on it) and mostly on-demand —
+the briefing/chat/Progress-Log button only ever runs when the Assistant tab
+asks for it, or a reminder email is being built. The one exception is the
+Daily Secretary Briefing (below), which does run on a schedule, piggybacked
+on the existing 7am trigger rather than a timer of its own. All of it reads
+the same `getTodayContext()` everything else uses, plus a multi-day calendar
+lookahead (`getUpcomingCalendarEvents_()` in `CalendarService.gs`, which
+`getTodayContext()` itself doesn't need since it only ever cares about
+today). `EmailService.gs`'s `assistantBriefingHtml_()`/`progressLogUrlSafely_()`
+both wrap their call in a try/catch specifically so a missing API key, a
+rate limit, or Gemini/Docs being briefly down can never break the reminder
+emails themselves — they just silently omit that one piece. The web app's
+Assistant tab, by contrast, lets a real failure surface to the person
+looking right at it.
 
 The Progress Log itself is a real Google Doc, not a Sheet row — the one
 place this project writes outside the Sheet. `getOrCreateProgressLogDoc_()`
@@ -78,6 +81,38 @@ doc for a heading matching today's date and overwrites that paragraph in
 place if found, rather than appending a duplicate, since the automatic
 evening-email call and someone manually pressing the button can both fire
 on the same day.
+
+**The Daily Secretary Briefing** (`generateDailySecretaryBriefing()` /
+`sendDailySecretaryBriefing()`) is the one genuinely *proactive* piece of
+this project — everything else here is either a scheduled email/log write
+or something the person has to open the app to see. Piggybacked on
+`sendMorningEmail()` in `EmailService.gs` rather than its own trigger, and
+delivered to Google Chat (`ChatService.gs`, a personal Space's incoming
+webhook — `sendGoogleChatMessage()`, no bot registration or approval
+process) rather than logged anywhere in-app. Its context
+(`buildSecretaryBriefingContext_()`) is deliberately built separately from
+`buildAssistantContext_()` — a longer calendar lookahead
+(`SECRETARY_CALENDAR_LOOKAHEAD_DAYS`, 3 days vs. the briefing/chat's 2), a
+study/reading time summary (`summarizeStudyBlocks_()`, matching calendar
+event titles against `STUDY_EVENT_KEYWORDS` — the only signal available,
+since Calendar events carry no separate "type" field), and, weekends only,
+the latest doc titled `BASELINE_DOC_TITLE_PREFIX` (`getLatestBaselineDocText_()`,
+via `DriveApp.searchFiles()` — a broader permission than the Progress Log's
+narrower per-file Docs access, since finding a doc by title needs Drive
+search, not just the ability to open a specific known file). If Gemini
+fails or no key is set, `generateDailySecretaryBriefing()` falls back to
+`generateFallbackSecretaryBriefing_()` — the plain calendar-plus-to-dos
+facts, no reasoning — rather than sending nothing, so a real deadline can't
+get silently lost to a free-tier quota outage. `sendDailySecretaryBriefing()`
+wraps the whole thing (Gemini call, fallback, and the Chat post itself) in
+one more try/catch, so a missing/bad Chat webhook can never break the 7am
+email that triggers it.
+
+Reading the separate Daily Update / Weekly Review docs from an existing
+manual Claude-chat practice (for the same weekend context) was considered
+and deliberately deferred — those docs weren't being produced consistently
+enough at build time to build reliable "find the latest one" logic against.
+Baseline-only for now; worth revisiting once that practice is more current.
 
 Everything both the emails and the web page show is derived from one function,
 `getTodayContext()` in `DataService.gs`. It is the single source of truth for
@@ -231,7 +266,12 @@ optional AI Assistant (`AiAssistant.gs`): it calls the Gemini API, which
 needs its own API key and is technically a third party rather than
 something bundled into the Google account this project otherwise lives
 entirely inside. In practice it stays free — Google AI Studio's free tier
-is generous relative to a personal project's handful of calls a day — but
+is generous relative to a personal project's handful of calls a day (3-4
+existing calls/day, +1 for the Secretary Briefing, plus a few per chat
+session — comfortably under even a conservative free daily quota) — but
 it's the one place "everything here is free" requires trusting a specific
 vendor's free tier rather than being structurally true the way the rest of
-this project is.
+this project is, and that vendor's free-tier limits are its own to change
+without notice. `ChatService.gs`'s Google Chat webhook is free and stays
+inside the same Google account — no separate cost dimension there, just
+the Drive/Docs permission note above.

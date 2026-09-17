@@ -5,6 +5,10 @@
  * Script editor) to schedule them at 7am / 1pm / 6pm — see README for the
  * exact steps and how to authorize it. Free: consumer Gmail's send quota
  * is ~100/day, and this uses 3.
+ *
+ * The 7am trigger also carries STEWARD's one proactive daily push (the
+ * Daily Secretary Briefing, AiAssistant.gs → Google Chat, ChatService.gs)
+ * — no separate trigger for it, see sendMorningEmail().
  */
 
 function createTriggers() {
@@ -84,6 +88,11 @@ function emailShell_(title, bodyHtml, ctx) {
 function sendMorningEmail() {
   var ctx = getTodayContext();
   if (!ctx.inWindow) return;
+  // Piggybacked here rather than its own trigger — one proactive push a
+  // day, at the same 7am moment the day's first email already fires.
+  // sendDailySecretaryBriefing() wraps its own body in try/catch, so a
+  // missing/bad Chat webhook can never stop this email from sending.
+  sendDailySecretaryBriefing();
   var t = ctx.prayerTargets;
   var body = assistantBriefingHtml_() +
     '<h3>Morning Prayer</h3>' +

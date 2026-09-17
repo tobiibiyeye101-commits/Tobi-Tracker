@@ -1,14 +1,23 @@
 /**
  * AiAssistant.gs
  * --------------
- * The "Jarvis" layer: hands everything else in this project already tracks
- * (today's status, open to-dos, the next couple of days on the calendar) to
- * the Gemini API. Two things:
- *   1. A priority briefing / ad-hoc Q&A (generateSmartBriefing/askAssistant)
- *      — what actually needs attention, in order, instead of a templated
- *      checklist.
+ * The "Jarvis" layer, now S.T.E.W.A.R.D. (Schedule Tracking & Event Watch
+ * for Assignments, Reminders, and Deadlines) — hands everything else in
+ * this project already tracks to the Gemini API. Four things:
+ *   1. A priority briefing / chat (generateSmartBriefing/askAssistant) —
+ *      pull-based: what actually needs attention, in order, or a specific
+ *      question, only when the Assistant tab is opened.
  *   2. A running daily Progress Log, written as an actual Google Doc
  *      (writeTodaysProgressLog) — one short journal-style entry per day.
+ *   3. The Daily Secretary Briefing (generateDailySecretaryBriefing/
+ *      sendDailySecretaryBriefing) — push-based: one proactive message a
+ *      day via Google Chat (ChatService.gs), piggybacked on the 7am
+ *      trigger, richer on weekends (baseline goals + light week-ahead
+ *      look) than weekdays. This is the one piece of STEWARD that reaches
+ *      you without you opening anything.
+ *   4. Study/reading time awareness (summarizeStudyBlocks_) — calendar
+ *      events matched by keyword, folded into the secretary briefing's
+ *      context so conflict/prep reasoning accounts for blocked study time.
  *
  * Uses Gemini specifically because it has a genuinely free tier (Google AI
  * Studio, no billing account needed) generous enough that a personal
@@ -139,11 +148,26 @@ function generateSmartBriefing() {
   return callGemini_(buildAssistantContext_());
 }
 
-/** An ad-hoc question from the web app's Assistant tab — same context, the user's own question appended. */
-function askAssistant(question) {
+/**
+ * An ad-hoc question from the web app's Chat with STEWARD thread — same
+ * live context every time (so it never reasons from stale state), plus
+ * recent turns from this sitting folded in as plain transcript text so
+ * "what about tomorrow?" reads as a follow-up. `history` is an array of
+ * {question, answer} pairs the client already caps to the last few turns —
+ * nothing is persisted server-side, each call is still stateless underneath.
+ */
+function askAssistant(question, history) {
   question = String(question || '').trim();
   if (!question) return '';
-  return callGemini_(buildAssistantContext_() + '\n\nThe user is asking you directly: ' + question);
+
+  var transcript = '';
+  if (history && history.length) {
+    transcript = '\n\nRecent conversation this session:\n' + history.map(function (turn) {
+      return 'User: ' + turn.question + '\nSTEWARD: ' + turn.answer;
+    }).join('\n') + '\n';
+  }
+
+  return callGemini_(buildAssistantContext_() + transcript + '\n\nThe user is now asking: ' + question);
 }
 
 // ---- Progress Log: a running Google Doc, one dated entry per day --------
@@ -220,4 +244,194 @@ function writeTodaysProgressLog() {
 
   doc.saveAndClose();
   return { url: doc.getUrl(), dayName: ctx.dayName };
+}
+
+// ---- Daily Secretary Briefing: one proactive push a day, via Chat -------
+
+var SECRETARY_CALENDAR_LOOKAHEAD_DAYS = 3; // today + the next 2 days
+// Matched case-insensitively anywhere in an event's title (e.g. "CVL 905
+// Study", "ECN 503 Reading") — the lowest-friction identification
+// available, since Calendar events have no separate "type" field. Add to
+// this list here if your naming ever includes something else.
+var STUDY_EVENT_KEYWORDS = ['study', 'reading'];
+// Title prefix used to find "the latest" baseline goals doc in Drive —
+// see getLatestBaselineDocText_().
+var BASELINE_DOC_TITLE_PREFIX = '00 - BASELINE';
+
+var SECRETARY_SYSTEM_PROMPT =
+  'You are STEWARD, a calm, concise personal secretary for a spiritual-growth ' +
+  'and schedule tracker. You are given the user\'s current tracking state, ' +
+  'upcoming calendar (including any flagged study/reading blocks), and — on ' +
+  'weekends only — their baseline goals doc. Write a short daily secretary ' +
+  'brief: what needs attention today, what\'s coming up in the next couple ' +
+  'of days worth knowing about now, and any real conflicts (e.g. a heavy ' +
+  'study load butting up against a deadline). On weekends, also give a ' +
+  'light look at the week ahead against the baseline goals — reflective, ' +
+  'not a full review, that already happens elsewhere. A short greeting is ' +
+  'fine, no sign-off, plain text, no markdown. Keep it proportionate — ' +
+  'don\'t pad it out if there isn\'t much going on.';
+
+function isStudyEventTitle_(title) {
+  var lower = String(title || '').toLowerCase();
+  return STUDY_EVENT_KEYWORDS.some(function (k) { return lower.indexOf(k) !== -1; });
+}
+
+/**
+ * Total study/reading time per upcoming day, from calendar events matching
+ * STUDY_EVENT_KEYWORDS. Returns display lines like "Tomorrow: 3h", not raw
+ * numbers, since this only ever feeds straight into briefing text.
+ */
+function summarizeStudyBlocks_(events) {
+  var minutesByDay = {};
+  var order = [];
+  events.forEach(function (e) {
+    if (e.allDay || !e.durationMinutes || !isStudyEventTitle_(e.title)) return;
+    if (!(e.dateLabel in minutesByDay)) order.push(e.dateLabel);
+    minutesByDay[e.dateLabel] = (minutesByDay[e.dateLabel] || 0) + e.durationMinutes;
+  });
+  return order.map(function (day) {
+    var hours = Math.round((minutesByDay[day] / 60) * 10) / 10;
+    return day + ': ' + hours + 'h';
+  });
+}
+
+/**
+ * The latest doc whose title starts with BASELINE_DOC_TITLE_PREFIX —
+ * "latest" by last-modified, since the doc gets recreated with a new date
+ * suffix each time it's superseded (e.g. "00 - BASELINE - Goals and
+ * Carry-Forward (Aug 25)") rather than edited in place. Needs the broader
+ * Drive search scope (DriveApp), not just the narrower per-file Docs
+ * access the Progress Log uses — a real step up in permissions, flagged in
+ * README, since finding a doc by title inherently means being able to see
+ * across Drive rather than only the files this project itself created.
+ * Returns null (not a thrown error) when nothing matches, so a weekend
+ * briefing still goes out without this section rather than failing
+ * outright over a doc that hasn't been created yet.
+ */
+function getLatestBaselineDocText_() {
+  var files = DriveApp.searchFiles(
+    "title contains '" + BASELINE_DOC_TITLE_PREFIX.replace(/'/g, "\\'") + "' and mimeType = '" +
+    MimeType.GOOGLE_DOCS + "' and trashed = false"
+  );
+  var latest = null;
+  while (files.hasNext()) {
+    var f = files.next();
+    if (!latest || f.getLastUpdated() > latest.getLastUpdated()) latest = f;
+  }
+  return latest ? DocumentApp.openById(latest.getId()).getBody().getText().trim() : null;
+}
+
+/**
+ * Everything the Daily Secretary Briefing reasons over — its own context
+ * builder, not buildAssistantContext_(), since this pulls a longer
+ * calendar lookahead, study-time totals, and (weekends only) the baseline
+ * goals doc that the shorter pull-based briefing/chat never need.
+ */
+function buildSecretaryBriefingContext_() {
+  var ctx = getTodayContext();
+  var dow = new Date().getDay(); // 0 = Sun, 6 = Sat
+  var isWeekend = dow === 0 || dow === 6;
+  var lookahead = getUpcomingCalendarEvents_(SECRETARY_CALENDAR_LOOKAHEAD_DAYS);
+  var studyLines = summarizeStudyBlocks_(lookahead.events);
+
+  var lines = [];
+  lines.push('Today is ' + ctx.dayName + (isWeekend ? ' (weekend)' : ' (weekday)') + '.');
+  lines.push('');
+  lines.push('DAILY TRACKING:');
+  lines.push('- First Batch: part ' + ctx.set1Index + ' of ' + ctx.set1Total + ' — ' + (ctx.set1Done ? 'done today' : 'not done yet today'));
+  lines.push('- Second Batch: "' + ctx.set2Message + '", ' + (ctx.set2MinutesLogged || 0) + ' minutes logged today');
+  lines.push('- Read Rhapsody: ' + (ctx.rhapsodyDone ? 'done' : 'not done yet'));
+  lines.push('- Bible reading: ' + (ctx.bibleDone ? 'done today' : 'not done yet'));
+  lines.push('- Prayer (' + ctx.phaseLabel + '): ' + ctx.prayerLogged.total + ' of ' + ctx.prayerTargets.total + ' minutes logged today');
+  lines.push('- Gym (' + ctx.gymDay + '): ' + (ctx.gymDone ? 'done' : 'not done'));
+
+  var openTodos = ctx.todos.filter(function (t) { return !t.done; });
+  lines.push('');
+  lines.push('OPEN TO-DOS (' + openTodos.length + '):');
+  if (!openTodos.length) {
+    lines.push('- Nothing outstanding.');
+  } else {
+    openTodos.forEach(function (t) { lines.push('- ' + t.task); });
+  }
+
+  lines.push('');
+  lines.push('UPCOMING CALENDAR (next ' + SECRETARY_CALENDAR_LOOKAHEAD_DAYS + ' days):');
+  if (!lookahead.events.length) {
+    lines.push('- Nothing on the calendar.');
+  } else {
+    lookahead.events.forEach(function (e) {
+      lines.push('- ' + e.dateLabel + ', ' + e.start + ': ' + e.title + (e.source === 'School' ? ' (school)' : ''));
+    });
+  }
+  if (lookahead.schoolError) lines.push('(Note: ' + lookahead.schoolError + ')');
+
+  lines.push('');
+  lines.push('STUDY/READING TIME BLOCKED (next ' + SECRETARY_CALENDAR_LOOKAHEAD_DAYS + ' days):');
+  lines.push(studyLines.length ? studyLines.map(function (l) { return '- ' + l; }).join('\n') : '- None blocked.');
+
+  if (isWeekend) {
+    lines.push('');
+    var baseline = getLatestBaselineDocText_();
+    if (baseline) {
+      lines.push('BASELINE GOALS (weekly planning doc):');
+      lines.push(baseline);
+    } else {
+      lines.push('(No baseline goals doc found — skip the week-ahead section.)');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * The rule-based fallback used when Gemini is unavailable — just the raw
+ * facts, no reasoning, so a real deadline is never silently missed just
+ * because the day's free-tier quota is gone. Deliberately duplicates a
+ * little logic from buildSecretaryBriefingContext_() rather than reusing
+ * it directly, since that one is written as an LLM prompt (labeled
+ * sections, instructions implied by structure) rather than a message a
+ * person should read as-is.
+ */
+function generateFallbackSecretaryBriefing_() {
+  var lookahead = getUpcomingCalendarEvents_(SECRETARY_CALENDAR_LOOKAHEAD_DAYS);
+  var ctx = getTodayContext();
+  var openTodos = ctx.todos.filter(function (t) { return !t.done; });
+  var studyLines = summarizeStudyBlocks_(lookahead.events);
+
+  var lines = ['Good morning — here\'s today\'s plain rundown (AI briefing unavailable right now):', ''];
+  lines.push('Calendar (next ' + SECRETARY_CALENDAR_LOOKAHEAD_DAYS + ' days):');
+  if (!lookahead.events.length) {
+    lines.push('- Nothing on the calendar.');
+  } else {
+    lookahead.events.forEach(function (e) { lines.push('- ' + e.dateLabel + ', ' + e.start + ': ' + e.title); });
+  }
+  if (studyLines.length) lines.push('Study/reading blocked: ' + studyLines.join(', '));
+  lines.push('');
+  lines.push('Open to-dos: ' + (openTodos.length ? openTodos.map(function (t) { return t.task; }).join(', ') : 'none'));
+  return lines.join('\n');
+}
+
+/** Tries Gemini first; any failure at all falls back to the plain rule-based version rather than sending nothing. */
+function generateDailySecretaryBriefing() {
+  try {
+    if (!getGeminiApiKey_()) throw new Error('no Gemini key set');
+    return callGemini_(buildSecretaryBriefingContext_(), SECRETARY_SYSTEM_PROMPT);
+  } catch (e) {
+    Logger.log('Secretary briefing falling back to rule-based: ' + e.message);
+    return generateFallbackSecretaryBriefing_();
+  }
+}
+
+/**
+ * The one proactive push a day — piggybacked on the 7am trigger (see
+ * sendMorningEmail() in EmailService.gs), delivered to Google Chat only
+ * (not logged anywhere in-app). Wrapped so a missing/bad Chat webhook can
+ * never break the 7am email that calls this.
+ */
+function sendDailySecretaryBriefing() {
+  try {
+    sendGoogleChatMessage(generateDailySecretaryBriefing());
+  } catch (e) {
+    Logger.log('Daily secretary briefing not sent: ' + e.message);
+  }
 }
