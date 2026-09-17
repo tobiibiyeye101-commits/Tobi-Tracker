@@ -77,3 +77,14 @@ function clientGetCalendar() {
 function clientAddCalendarEvent(dateStr, title, description, startTime, endTime) {
   return createCalendarEvent(dateStr, title, description, startTime, endTime);
 }
+
+// AiAssistant.gs — both let a real error (e.g. no API key set yet) surface
+// to the client as-is, unlike the emails' assistantBriefingHtml_(), since
+// here the user is actively looking at the Assistant tab and asking for it.
+function clientGetSmartBriefing() {
+  return generateSmartBriefing();
+}
+
+function clientAskAssistant(question) {
+  return askAssistant(question);
+}

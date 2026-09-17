@@ -8,7 +8,9 @@ mobile-friendly web page to log progress against each one.
 
 It runs entirely on **Google Apps Script + a Google Sheet** — no hosting,
 no accounts, no cost. Gmail's free send quota is ~100 emails/day; this
-uses 3.
+uses 3. An optional AI assistant (see below) is the one piece that talks
+to something outside Google — still free in practice, but worth knowing
+about before you turn it on.
 
 ## What it tracks
 
@@ -22,14 +24,15 @@ uses 3.
 | **To-Do List** | Its own tab, fully editable both ways — add/check/edit/delete from the app, or edit rows directly in the `ToDo_List` sheet. |
 | **Prayer Points** | A Title + Content pair per point, edited in the `Prayer_Points` sheet — the app shows 2 per day on a rotation through the list. |
 | **Gym** | One row per day (like Daily_Log) — a free-text "today's set" plus a Done checkbox, since the split just varies by what you type. |
-| **Calendar** | Shows what's on your default Google Calendar today, and lets you add a new event (any date, title, optional description) straight from the app. |
+| **Calendar** | Shows what's on your default Google Calendar today, and lets you add a new event (any date, title, optional time, optional description) straight from the app. |
+| **Assistant** *(optional)* | A Gemini-powered "what actually needs attention" briefing, on demand or folded into the 3 daily emails, plus a free-text question box. See "AI Assistant" below — nothing here works until you add a (free) API key. |
 
 ## One-time setup (~10 minutes)
 
 1. **Create the project.** Go to [script.google.com](https://script.google.com) → New project.
 2. **Copy in the files.** For each file in `apps-script/` (`Config.gs`, `SheetSetup.gs`,
-   `DataService.gs`, `EmailService.gs`, `CalendarService.gs`, `WebApp.gs`, `Index.html`,
-   `appsscript.json`):
+   `DataService.gs`, `EmailService.gs`, `CalendarService.gs`, `AiAssistant.gs`, `WebApp.gs`,
+   `Index.html`, `appsscript.json`):
    - In the Apps Script editor, click the **+** next to Files → **Script** (for `.gs` files)
      or **HTML** (for `Index.html`) → name it to match (drop the `.gs` extension when naming).
    - Paste the file's contents in.
@@ -86,6 +89,46 @@ merges events from both and labels each with a small "You"/"School" pill. New ev
 "Add an Event" still always go to your default calendar — the school one stays read-only,
 matching the share.
 
+## AI Assistant (optional)
+
+`AiAssistant.gs` hands everything else in this project already tracks — today's
+status, open to-dos, the next couple of days on the calendar — to the **Gemini
+API**, and asks it to point out what actually needs attention, in priority
+order, instead of just listing everything. It shows up two places: an **Assistant**
+tab in the app (a "Get today's briefing" button plus a free-text "Ask" box),
+and — once set up — a short briefing folded into the top of all three daily
+reminder emails.
+
+This is genuinely optional. Nothing else in the project depends on it, and
+skipping this whole section leaves everything else exactly as described above.
+
+**Why Gemini and not something else:** [Google AI Studio](https://aistudio.google.com)
+gives Gemini a real free tier — no billing account needed — generous enough that
+a personal project's handful of calls a day (a few emails plus the odd "Ask") never
+comes close to its limits. It's the one piece of this project that calls something
+outside your Google account, so it's worth knowing that's happening even though it
+costs nothing in practice.
+
+**Setup (2 minutes):**
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey), sign in
+   with your Google account, and create an API key. No billing setup needed for the
+   free tier.
+2. In the Apps Script editor, temporarily add:
+   `function _setGeminiKey(){ setGeminiApiKey('PASTE_YOUR_KEY_HERE'); }`,
+   select `_setGeminiKey` from the function dropdown, run it once, then delete the
+   function. (Same pattern as `setWebAppUrl()` in step 5 above.)
+
+That's it — no new trigger, no redeploy needed just for this. The **Assistant**
+tab and the emails both pick it up immediately. Without a key set, the Assistant
+tab shows a clear "no API key" message instead of failing silently, and the
+emails just quietly skip the briefing and send exactly as before — a bad key, a
+rate limit, or Gemini being briefly down never breaks the reminder emails
+themselves, only the extra section at the top.
+
+To change the model (`GEMINI_MODEL` in `AiAssistant.gs`) or how far ahead it
+looks on the calendar (`ASSISTANT_CALENDAR_LOOKAHEAD_DAYS`, 2 days by default),
+edit those constants directly.
+
 ## Using it day to day
 
 - Open the web app link (from the morning email, or your bookmark).
@@ -98,6 +141,9 @@ matching the share.
   collapsed by default (Prayer Points, Last 14 Days, Add an Event) since they're used
   less often day to day; the rest start open. Nothing here is remembered between visits,
   so the page always opens with those same defaults.
+- If you've set up the AI Assistant, the **Assistant** tab's "Get today's briefing"
+  button (or the top of each reminder email) is the fastest way to see what actually
+  needs attention today rather than reading every card yourself.
 
 ## Adjusting things later
 

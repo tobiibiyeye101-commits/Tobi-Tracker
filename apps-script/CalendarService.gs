@@ -50,6 +50,30 @@ function getTodayCalendarEvents_(date) {
   return { events: events, schoolError: schoolError };
 }
 
+/**
+ * Today plus the next (days - 1) days worth of events, flattened into one
+ * list with a human date label per event. Used by AiAssistant.gs, which
+ * needs to reason about what's coming up — getTodayCalendarEvents_() alone
+ * only ever looks at a single day. Reuses that same per-day fetch (same
+ * default+school merge, same schoolError handling) rather than duplicating
+ * the CalendarApp calls.
+ */
+function getUpcomingCalendarEvents_(days) {
+  var today = todayDate_();
+  var results = [];
+  var schoolError = '';
+  for (var i = 0; i < days; i++) {
+    var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+    var dayResult = getTodayCalendarEvents_(d);
+    var dateLabel = i === 0 ? 'Today' : (i === 1 ? 'Tomorrow' : Utilities.formatDate(d, Session.getScriptTimeZone(), 'EEEE'));
+    dayResult.events.forEach(function (e) {
+      results.push({ dateLabel: dateLabel, start: e.start, title: e.title, source: e.source });
+    });
+    if (dayResult.schoolError && !schoolError) schoolError = dayResult.schoolError;
+  }
+  return { events: results, schoolError: schoolError };
+}
+
 /** Everything the Calendar tab needs: today's date plus what's on it. */
 function getCalendarSummaryForToday() {
   var date = todayDate_();

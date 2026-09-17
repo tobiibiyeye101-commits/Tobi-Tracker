@@ -232,6 +232,17 @@
     }
     .todo-delete:hover { color: var(--accent-strong); }
     .todo-empty { color: var(--ink-faint); font-size: 0.85rem; padding: 8px 0; }
+
+    /* ---- Assistant ---- */
+    .assistant-output {
+      margin-top: 14px; padding: 14px 16px; border-radius: 10px;
+      background: var(--field-bg); border: 1px solid var(--border);
+      color: var(--ink); font-size: 0.92rem; line-height: 1.55;
+      white-space: pre-wrap;
+    }
+    .assistant-output:empty { display: none; }
+    .assistant-output.loading { color: var(--ink-faint); font-style: italic; }
+    .assistant-output.error { color: #e3a3a3; border-color: rgba(227,163,163,0.35); }
   </style>
 </head>
 <body>
@@ -257,6 +268,7 @@
         <button class="tab-btn" data-tab="todo" role="tab" aria-selected="false">To-Do</button>
         <button class="tab-btn" data-tab="gym" role="tab" aria-selected="false">Gym</button>
         <button class="tab-btn" data-tab="calendar" role="tab" aria-selected="false">Calendar</button>
+        <button class="tab-btn" data-tab="assistant" role="tab" aria-selected="false">Assistant</button>
       </div>
 
       <div class="tab-panel" data-tab-panel="tracker">
@@ -435,6 +447,23 @@
           <input type="text" id="newEventDescription" placeholder="optional">
           <button class="secondary" onclick="addCalendarEvent()">Add Event</button>
           <div id="addEventStatus" class="sub" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="assistant" hidden>
+        <div class="card">
+          <h2>Today's Briefing</h2>
+          <div class="sub">What actually needs your attention, in order — reads your progress today plus the next couple of days on the calendar.</div>
+          <button class="secondary" onclick="getBriefing()">Get today's briefing</button>
+          <div id="briefingOutput" class="assistant-output"></div>
+        </div>
+
+        <div class="card">
+          <h2>Ask</h2>
+          <label>Ask about your schedule or what's left today</label>
+          <input type="text" id="assistantQuestion" placeholder="e.g. what should I prioritize this evening?">
+          <button class="secondary" onclick="askAssistantQuestion()">Ask</button>
+          <div id="assistantAnswer" class="assistant-output"></div>
         </div>
       </div>
 
@@ -994,6 +1023,44 @@
         .clientAddCalendarEvent(dateInput.value, titleInput.value.trim(), descInput.value, startInput.value, endInput.value);
     }
 
+    // ---- Assistant ------------------------------------------------------
+    // Both calls are on-demand (a button/Enter, never on page load or a
+    // timer) — this only ever costs a Gemini call when actually asked for.
+    function getBriefing() {
+      var out = document.getElementById('briefingOutput');
+      out.className = 'assistant-output loading';
+      out.textContent = 'Thinking…';
+      google.script.run
+        .withSuccessHandler(function (text) {
+          out.className = 'assistant-output';
+          out.textContent = text;
+        })
+        .withFailureHandler(function (err) {
+          out.className = 'assistant-output error';
+          out.textContent = 'Could not get a briefing (' + err.message + ')';
+        })
+        .clientGetSmartBriefing();
+    }
+
+    function askAssistantQuestion() {
+      var input = document.getElementById('assistantQuestion');
+      var question = input.value.trim();
+      if (!question) return;
+      var out = document.getElementById('assistantAnswer');
+      out.className = 'assistant-output loading';
+      out.textContent = 'Thinking…';
+      google.script.run
+        .withSuccessHandler(function (text) {
+          out.className = 'assistant-output';
+          out.textContent = text;
+        })
+        .withFailureHandler(function (err) {
+          out.className = 'assistant-output error';
+          out.textContent = 'Could not get an answer (' + err.message + ')';
+        })
+        .clientAskAssistant(question);
+    }
+
     makeCardsCollapsible();
     wireAutosave();
     wireCompletionCue();
@@ -1002,6 +1069,9 @@
     wireTabs();
     document.getElementById('todoNewTask').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') addTodoItem();
+    });
+    document.getElementById('assistantQuestion').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') askAssistantQuestion();
     });
     load();
   </script>

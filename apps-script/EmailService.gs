@@ -31,6 +31,25 @@ function recipient_() {
   return EMAIL_TO || Session.getActiveUser().getEmail();
 }
 
+/**
+ * The optional AI briefing (AiAssistant.gs) prepended to each email, when
+ * set up — wrapped so a missing/bad Gemini key, a rate limit, or any other
+ * failure there never breaks the reminder email itself. No key set at all
+ * is the common case (it's opt-in) and returns silently, no noise.
+ */
+function assistantBriefingHtml_() {
+  try {
+    if (!getGeminiApiKey_()) return '';
+    var text = generateSmartBriefing();
+    return '<div style="background:#f2f7f4;border-left:3px solid #2f6f4f;padding:10px 14px;margin-bottom:18px;">' +
+      '<div style="font-size:12px;letter-spacing:0.04em;text-transform:uppercase;color:#2f6f4f;margin-bottom:4px;">Assistant</div>' +
+      '<div style="color:#333;">' + text.replace(/\n/g, '<br>') + '</div></div>';
+  } catch (e) {
+    Logger.log('Assistant briefing skipped: ' + e.message);
+    return '';
+  }
+}
+
 function emailShell_(title, bodyHtml, ctx) {
   var link = ctx.webAppUrl
     ? '<p style="margin-top:24px;"><a href="' + ctx.webAppUrl + '" style="background:#2f6f4f;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Log today\'s progress →</a></p>'
@@ -46,7 +65,7 @@ function sendMorningEmail() {
   var ctx = getTodayContext();
   if (!ctx.inWindow) return;
   var t = ctx.prayerTargets;
-  var body =
+  var body = assistantBriefingHtml_() +
     '<h3>Morning Prayer</h3>' +
     '<p>Target: <strong>' + t.morning + ' minutes</strong> (' + ctx.phaseLabel + ')</p>' +
     '<h3>Second Batch of Messages</h3>' +
@@ -63,7 +82,7 @@ function sendMiddayEmail() {
   var ctx = getTodayContext();
   if (!ctx.inWindow) return;
   var t = ctx.prayerTargets;
-  var body =
+  var body = assistantBriefingHtml_() +
     '<h3>Campus Prayer & Prophesying</h3>' +
     '<p>Target: <strong>' + t.campus + ' minutes</strong>, worked into gaps in the day (before class, etc.)</p>' +
     '<h3>Read Rhapsody</h3>' +
@@ -89,7 +108,7 @@ function sendEveningEmail() {
   else if (dow === 6) { eveningBlockLabel = 'Saturday Night Prayer'; eveningBlockMinutes = t.saturdayNight; }
   else { eveningBlockLabel = 'Evening Prayer'; eveningBlockMinutes = t.evening; }
 
-  var body =
+  var body = assistantBriefingHtml_() +
     '<h3>' + eveningBlockLabel + '</h3>' +
     '<p>Target: <strong>' + eveningBlockMinutes + ' minutes</strong> (' + ctx.phaseLabel + ')</p>' +
     '<h3>First Batch of Messages</h3>' +

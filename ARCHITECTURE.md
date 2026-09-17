@@ -35,6 +35,7 @@ Apps Script project (bound to that Sheet)
  ├─ DataService.gs    — all reads/writes to the Sheet + the pure-logic rules
  ├─ EmailService.gs   — builds/sends the 3 daily emails, owns all triggers
  ├─ CalendarService.gs — reads today's events + creates new ones on request
+ ├─ AiAssistant.gs    — optional Gemini-backed briefing/Q&A, see below
  ├─ WebApp.gs         — doGet() entry point + the functions the page can call
  └─ Index.html        — the tabbed logging page itself (served by WebApp.gs)
 ```
@@ -51,6 +52,20 @@ auto-pushes tracker data onto the calendar. (An earlier version did — it
 pushed prayer/Gym blocks automatically and flagged conflicts — but that was
 removed by request. `CalendarApp` still needs the Calendar authorization
 scope for the read/create it still does.)
+
+`AiAssistant.gs` is the other file that reaches outside this Sheet, and the
+only one that leaves Google entirely: `UrlFetchApp.fetch()` to the Gemini
+API. Entirely optional (nothing else depends on it) and entirely on-demand
+— it only ever runs when the Assistant tab's briefing/Ask is used, or a
+reminder email is being built, never on a timer of its own. Reads the same
+`getTodayContext()` everything else uses plus a multi-day calendar
+lookahead (`getUpcomingCalendarEvents_()` in `CalendarService.gs`, which
+`getTodayContext()` itself doesn't need since it only ever cares about
+today). `EmailService.gs`'s `assistantBriefingHtml_()` wraps the call in a
+try/catch specifically so a missing API key, a rate limit, or Gemini being
+briefly down can never break the reminder emails themselves — it just
+silently omits that one section. The web app's Assistant tab, by contrast,
+lets a real failure surface to the person looking right at it.
 
 Everything both the emails and the web page show is derived from one function,
 `getTodayContext()` in `DataService.gs`. It is the single source of truth for
@@ -110,13 +125,22 @@ top of it.
 **Set 1 / Set 2 / Bible position** — none of these are date-driven; all three
 live in `Pointers` and only change when the person explicitly advances them
 (`advanceSet1Message()`, `advanceSet2Message()`, `setBiblePointer()`). Set 1
-("3 Kinds of Wisdom", 12 parts) advances the moment "Listened to it" gets
-ticked for the current part — there's no rotation math, it just moves the
-pointer forward by one and can sit on the same part for as many days as it
-takes. Set 2 is the same mechanism behind its "move to next message" button.
-`Daily_Log` still records whatever the pointers said on each day that was
-saved, as a historical snapshot — but the pointers themselves are the
-current-state source of truth, `Daily_Log` is the journal.
+("3 Kinds of Wisdom", 12 parts) moves only via the First Batch card's
+explicit "‹"/"›" buttons — "›" stays disabled until today's "Listened to it"
+is ticked (so it still can't be skipped past unheard), but ticking the box
+itself never moves the pointer; that decoupling is deliberate (see Known
+Traps #4). "‹" (`retreatSet1Message()`) is real recovery, not just a
+preview — it moves the pointer back a slot without touching the
+`Set1_Messages` sheet's Completed Date for the part being left, so genuine
+completion history survives being browsed back over. Both directions clear
+today's Set1 Done flag afterward (`resetSet1DoneForToday_()`), since that
+flag always means "listened to whichever part is showing now." Set 2 is a
+simpler, forward-only version of the same mechanism behind its "move to
+next message" button — no back button, no daily gate, advance whenever
+you finish one. `Daily_Log` still records whatever the pointers said on
+each day that was saved, as a historical snapshot — but the pointers
+themselves are the current-state source of truth, `Daily_Log` is the
+journal.
 
 **Prayer Points rotation** — `getPrayerPointsForDate_()`: same date-driven idea
 as Set 1, but steps two items at a time — `list[idx*2 % N]` and
@@ -170,9 +194,32 @@ about them going in, rather than rediscovering them:
    index mapping in `getLogRow_()`/`getHistory()` (all in `DataService.gs`).
    Missing one is what "columns don't match values" always turns out to be.
 
-## Everything is free
+4. **Don't tie an irreversible state change to a checkbox's own value.**
+   Set 1 originally advanced the pointer the moment "Listened to it" went
+   from unchecked to checked. That sounds safe until you notice the
+   checkbox is the thing being toggled — unchecking it and checking it
+   again later re-fires the same transition, so any guard keyed off the
+   checkbox's own state gets reset by the very action it's supposed to be
+   guarding against. Someone un-ticking a mistaken tick, or just tapping it
+   twice, silently advanced the pointer again with no way back. The fix
+   wasn't a smarter guard, it was removing the coupling: the checkbox is
+   now a plain flag with zero side effects, and two explicit buttons are
+   the only way the pointer moves. If a future feature wants "do X once
+   when the user confirms Y," make X a deliberate, separate action —
+   never something that fires as a side effect of a value a checkbox can
+   freely flip back and forth.
+
+## Cost
 
 MailApp's send quota for a consumer Gmail account is roughly 100/day; this
-uses 3. The Sheet, the Script, and the web app deployment all live inside the
-one Google account's free tier indefinitely — there's no hosting cost, no API
-key, no subscription anywhere in this system.
+uses 3. The Sheet, the Script, and the web app deployment all live inside
+the one Google account's free tier indefinitely — no hosting cost, no
+subscription, nothing to pay for using any of it. The one exception is the
+optional AI Assistant (`AiAssistant.gs`): it calls the Gemini API, which
+needs its own API key and is technically a third party rather than
+something bundled into the Google account this project otherwise lives
+entirely inside. In practice it stays free — Google AI Studio's free tier
+is generous relative to a personal project's handful of calls a day — but
+it's the one place "everything here is free" requires trusting a specific
+vendor's free tier rather than being structurally true the way the rest of
+this project is.
