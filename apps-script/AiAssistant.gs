@@ -3,9 +3,12 @@
  * --------------
  * The "Jarvis" layer: hands everything else in this project already tracks
  * (today's status, open to-dos, the next couple of days on the calendar) to
- * the Gemini API and asks it to point out what actually needs attention —
- * in priority order, with realistic timing where the calendar makes that
- * obvious — instead of a templated checklist.
+ * the Gemini API. Two things:
+ *   1. A priority briefing / ad-hoc Q&A (generateSmartBriefing/askAssistant)
+ *      — what actually needs attention, in order, instead of a templated
+ *      checklist.
+ *   2. A running daily Progress Log, written as an actual Google Doc
+ *      (writeTodaysProgressLog) — one short journal-style entry per day.
  *
  * Uses Gemini specifically because it has a genuinely free tier (Google AI
  * Studio, no billing account needed) generous enough that a personal
@@ -96,18 +99,20 @@ var ASSISTANT_SYSTEM_PROMPT =
   'text, no markdown, no greeting, no sign-off.';
 
 /**
- * Calls the Gemini API with the given user-turn text. Throws with a clear
- * message on any failure (missing key, bad key, rate limit, empty
- * response) rather than failing silently — callers that shouldn't ever
- * break because of this (the reminder emails) catch it themselves.
+ * Calls the Gemini API with the given user-turn text under the given
+ * system prompt (defaults to the briefing/Ask persona above — the
+ * progress log below passes its own). Throws with a clear message on any
+ * failure (missing key, bad key, rate limit, empty response) rather than
+ * failing silently — callers that shouldn't ever break because of this
+ * (the reminder emails) catch it themselves.
  */
-function callGemini_(userPrompt) {
+function callGemini_(userPrompt, systemPrompt) {
   var apiKey = getGeminiApiKey_();
   if (!apiKey) throw new Error('No Gemini API key set — see AiAssistant.gs / README for the one-time setup step.');
 
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey;
   var payload = {
-    systemInstruction: { parts: [{ text: ASSISTANT_SYSTEM_PROMPT }] },
+    systemInstruction: { parts: [{ text: systemPrompt || ASSISTANT_SYSTEM_PROMPT }] },
     contents: [{ role: 'user', parts: [{ text: userPrompt }] }]
   };
   var response = UrlFetchApp.fetch(url, {
@@ -139,4 +144,80 @@ function askAssistant(question) {
   question = String(question || '').trim();
   if (!question) return '';
   return callGemini_(buildAssistantContext_() + '\n\nThe user is asking you directly: ' + question);
+}
+
+// ---- Progress Log: a running Google Doc, one dated entry per day --------
+// Same idea as getOrCreateSpreadsheet_() in SheetSetup.gs — the doc's ID is
+// stored once in Script Properties and reused, created only the first time
+// this is ever called.
+
+var PROGRESS_LOG_DOC_ID_PROPERTY = 'PROGRESS_LOG_DOC_ID';
+
+var PROGRESS_LOG_SYSTEM_PROMPT =
+  'You write a single day\'s entry in a personal progress log for a ' +
+  'spiritual-growth and schedule tracker, based on the day\'s tracked data ' +
+  'given to you. Write 2-4 short paragraphs of plain prose, second person ' +
+  '("you..."), like a thoughtful daily journal summary — not a checklist, ' +
+  'no markdown, no headers, no greeting or sign-off. Note what was engaged ' +
+  'with today, what fell short of target or was skipped, and one honest, ' +
+  'grounded observation — not generically encouraging, not preachy. Only ' +
+  'use what is actually in the data given to you; never invent detail.';
+
+function getOrCreateProgressLogDoc_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty(PROGRESS_LOG_DOC_ID_PROPERTY);
+  if (id) {
+    try {
+      return DocumentApp.openById(id);
+    } catch (e) {
+      // stored id no longer resolves (doc deleted) — fall through and recreate
+    }
+  }
+  var doc = DocumentApp.create('Tobi Spiritual Progress Tracker — Daily Log');
+  props.setProperty(PROGRESS_LOG_DOC_ID_PROPERTY, doc.getId());
+  return doc;
+}
+
+/**
+ * Writes (or, if today's section already exists, updates in place) today's
+ * progress log entry — same "one entry per day" upsert principle as
+ * Daily_Log/Gym_Log elsewhere in this project, just against a Doc instead
+ * of a Sheet, since running this twice in a day (the automatic evening
+ * call, then someone also pressing the button) should never leave two
+ * entries for the same day.
+ */
+function writeTodaysProgressLog() {
+  var ctx = getTodayContext();
+  var entryText = callGemini_(buildAssistantContext_(), PROGRESS_LOG_SYSTEM_PROMPT);
+
+  var doc = getOrCreateProgressLogDoc_();
+  var body = doc.getBody();
+
+  var existingHeading = null;
+  for (var i = 0; i < body.getNumChildren(); i++) {
+    var el = body.getChild(i);
+    if (el.getType() === DocumentApp.ElementType.PARAGRAPH &&
+        el.asParagraph().getHeading() === DocumentApp.ParagraphType.HEADING2 &&
+        el.asParagraph().getText() === ctx.dayName) {
+      existingHeading = el.asParagraph();
+      break;
+    }
+  }
+
+  if (existingHeading) {
+    var idx = body.getChildIndex(existingHeading);
+    var next = idx + 1 < body.getNumChildren() ? body.getChild(idx + 1) : null;
+    if (next && next.getType() === DocumentApp.ElementType.PARAGRAPH) {
+      next.asParagraph().setText(entryText);
+    } else {
+      body.insertParagraph(idx + 1, entryText);
+    }
+  } else {
+    if (body.getText().trim() !== '') body.appendHorizontalRule();
+    body.appendParagraph(ctx.dayName).setHeading(DocumentApp.ParagraphType.HEADING2);
+    body.appendParagraph(entryText);
+  }
+
+  doc.saveAndClose();
+  return { url: doc.getUrl(), dayName: ctx.dayName };
 }

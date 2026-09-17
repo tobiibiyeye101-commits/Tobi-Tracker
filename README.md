@@ -25,7 +25,7 @@ about before you turn it on.
 | **Prayer Points** | A Title + Content pair per point, edited in the `Prayer_Points` sheet — the app shows 2 per day on a rotation through the list. |
 | **Gym** | One row per day (like Daily_Log) — a free-text "today's set" plus a Done checkbox, since the split just varies by what you type. |
 | **Calendar** | Shows what's on your default Google Calendar today, and lets you add a new event (any date, title, optional time, optional description) straight from the app. |
-| **Assistant** *(optional)* | A Gemini-powered "what actually needs attention" briefing, on demand or folded into the 3 daily emails, plus a free-text question box. See "AI Assistant" below — nothing here works until you add a (free) API key. |
+| **Assistant** *(optional)* | A Gemini-powered "what actually needs attention" briefing, on demand or folded into the 3 daily emails, a free-text question box, and a daily Progress Log written to a running Google Doc. See "AI Assistant" below — nothing here works until you add a (free) API key. |
 
 ## One-time setup (~10 minutes)
 
@@ -93,11 +93,22 @@ matching the share.
 
 `AiAssistant.gs` hands everything else in this project already tracks — today's
 status, open to-dos, the next couple of days on the calendar — to the **Gemini
-API**, and asks it to point out what actually needs attention, in priority
-order, instead of just listing everything. It shows up two places: an **Assistant**
-tab in the app (a "Get today's briefing" button plus a free-text "Ask" box),
-and — once set up — a short briefing folded into the top of all three daily
-reminder emails.
+API**. Two things:
+
+- **A priority briefing / ad-hoc Q&A** — what actually needs attention, in
+  order, instead of just listing everything. Lives in the app's **Assistant**
+  tab (a "Get today's briefing" button plus a free-text "Ask" box), and —
+  once set up — a short version is folded into the top of all three daily
+  reminder emails.
+- **A daily Progress Log** — a running Google Doc ("Tobi Spiritual Progress
+  Tracker — Daily Log", created automatically the first time it's used, same
+  as the Sheet) with one short, journal-style entry per day, written from
+  that day's tracked data. Runs automatically as part of the evening email
+  (so it reflects whatever's logged by 6pm — anything you log later that
+  night won't be in it until the next run), and there's also a "Write
+  today's entry" button in the Assistant tab for on demand/after the fact.
+  Running it more than once in a day updates that day's entry rather than
+  adding a duplicate.
 
 This is genuinely optional. Nothing else in the project depends on it, and
 skipping this whole section leaves everything else exactly as described above.
@@ -121,9 +132,15 @@ costs nothing in practice.
 That's it — no new trigger, no redeploy needed just for this. The **Assistant**
 tab and the emails both pick it up immediately. Without a key set, the Assistant
 tab shows a clear "no API key" message instead of failing silently, and the
-emails just quietly skip the briefing and send exactly as before — a bad key, a
-rate limit, or Gemini being briefly down never breaks the reminder emails
-themselves, only the extra section at the top.
+emails just quietly skip the briefing (and the Progress Log entry) and send
+exactly as before — a bad key, a rate limit, or Gemini/Docs being briefly down
+never breaks the reminder emails themselves, only those extra pieces.
+
+The first time anything in this file actually runs (the Assistant tab, or the
+evening email once a key is set), Google will show a fresh authorization
+screen for Google Docs access — same click-through as when Calendar access
+was added, no separate account or connector, just one more permission on the
+same Google account everything else already uses.
 
 To change the model (`GEMINI_MODEL` in `AiAssistant.gs`) or how far ahead it
 looks on the calendar (`ASSISTANT_CALENDAR_LOOKAHEAD_DAYS`, 2 days by default),

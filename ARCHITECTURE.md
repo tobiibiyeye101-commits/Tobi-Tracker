@@ -35,7 +35,7 @@ Apps Script project (bound to that Sheet)
  ├─ DataService.gs    — all reads/writes to the Sheet + the pure-logic rules
  ├─ EmailService.gs   — builds/sends the 3 daily emails, owns all triggers
  ├─ CalendarService.gs — reads today's events + creates new ones on request
- ├─ AiAssistant.gs    — optional Gemini-backed briefing/Q&A, see below
+ ├─ AiAssistant.gs    — optional Gemini-backed briefing/Q&A + daily Progress Log, see below
  ├─ WebApp.gs         — doGet() entry point + the functions the page can call
  └─ Index.html        — the tabbed logging page itself (served by WebApp.gs)
 ```
@@ -56,16 +56,28 @@ scope for the read/create it still does.)
 `AiAssistant.gs` is the other file that reaches outside this Sheet, and the
 only one that leaves Google entirely: `UrlFetchApp.fetch()` to the Gemini
 API. Entirely optional (nothing else depends on it) and entirely on-demand
-— it only ever runs when the Assistant tab's briefing/Ask is used, or a
-reminder email is being built, never on a timer of its own. Reads the same
-`getTodayContext()` everything else uses plus a multi-day calendar
-lookahead (`getUpcomingCalendarEvents_()` in `CalendarService.gs`, which
-`getTodayContext()` itself doesn't need since it only ever cares about
-today). `EmailService.gs`'s `assistantBriefingHtml_()` wraps the call in a
-try/catch specifically so a missing API key, a rate limit, or Gemini being
-briefly down can never break the reminder emails themselves — it just
-silently omits that one section. The web app's Assistant tab, by contrast,
-lets a real failure surface to the person looking right at it.
+— it only ever runs when the Assistant tab's briefing/Ask/Progress-Log
+button is used, or a reminder email is being built, never on a timer of its
+own. Reads the same `getTodayContext()` everything else uses plus a
+multi-day calendar lookahead (`getUpcomingCalendarEvents_()` in
+`CalendarService.gs`, which `getTodayContext()` itself doesn't need since
+it only ever cares about today). `EmailService.gs`'s
+`assistantBriefingHtml_()`/`progressLogUrlSafely_()` both wrap their call in
+a try/catch specifically so a missing API key, a rate limit, or Gemini/Docs
+being briefly down can never break the reminder emails themselves — they
+just silently omit that one piece. The web app's Assistant tab, by
+contrast, lets a real failure surface to the person looking right at it.
+
+The Progress Log itself is a real Google Doc, not a Sheet row — the one
+place this project writes outside the Sheet. `getOrCreateProgressLogDoc_()`
+follows the exact same shape as `getOrCreateSpreadsheet_()` in
+`SheetSetup.gs`: create once, store the id in Script Properties, reopen by
+id every time after. `writeTodaysProgressLog()` then applies the same "one
+entry per day" upsert principle as `Daily_Log`/`Gym_Log` — it searches the
+doc for a heading matching today's date and overwrites that paragraph in
+place if found, rather than appending a duplicate, since the automatic
+evening-email call and someone manually pressing the button can both fire
+on the same day.
 
 Everything both the emails and the web page show is derived from one function,
 `getTodayContext()` in `DataService.gs`. It is the single source of truth for

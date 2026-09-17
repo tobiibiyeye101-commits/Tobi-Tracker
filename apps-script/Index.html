@@ -465,6 +465,13 @@
           <button class="secondary" onclick="askAssistantQuestion()">Ask</button>
           <div id="assistantAnswer" class="assistant-output"></div>
         </div>
+
+        <div class="card">
+          <h2>Progress Log</h2>
+          <div class="sub">A running Google Doc — one short journal-style entry per day, written from today's tracked data. Updates today's entry if you run it more than once. Also runs automatically with the evening email once the Assistant is set up.</div>
+          <button class="secondary" onclick="writeProgressLog()">Write today's entry</button>
+          <div id="progressLogOutput" class="assistant-output"></div>
+        </div>
       </div>
 
     </div>
@@ -1059,6 +1066,23 @@
           out.textContent = 'Could not get an answer (' + err.message + ')';
         })
         .clientAskAssistant(question);
+    }
+
+    function writeProgressLog() {
+      var out = document.getElementById('progressLogOutput');
+      out.className = 'assistant-output loading';
+      out.textContent = 'Writing…';
+      google.script.run
+        .withSuccessHandler(function (result) {
+          out.className = 'assistant-output';
+          out.innerHTML = 'Updated ' + result.dayName + '’s entry — <a href="' + result.url +
+            '" target="_blank" style="color:var(--accent-strong);">open the Progress Log →</a>';
+        })
+        .withFailureHandler(function (err) {
+          out.className = 'assistant-output error';
+          out.textContent = 'Could not write the log (' + err.message + ')';
+        })
+        .clientWriteProgressLog();
     }
 
     makeCardsCollapsible();

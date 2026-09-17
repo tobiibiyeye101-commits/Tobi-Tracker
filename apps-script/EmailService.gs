@@ -50,6 +50,26 @@ function assistantBriefingHtml_() {
   }
 }
 
+/**
+ * Writes/updates today's Progress Log entry (AiAssistant.gs) and returns a
+ * link to it, or null on any failure — same defensive wrapping as
+ * assistantBriefingHtml_() above, so a missing key, a rate limit, or
+ * Gemini/Docs being briefly down never breaks the evening email itself.
+ * Only called from the evening email: by 6pm most of the day's tracking
+ * is in, though anything logged later that evening won't be reflected —
+ * re-running it from the Assistant tab's button after the fact updates
+ * that same entry in place rather than adding a second one.
+ */
+function progressLogUrlSafely_() {
+  try {
+    if (!getGeminiApiKey_()) return null;
+    return writeTodaysProgressLog().url;
+  } catch (e) {
+    Logger.log('Progress log skipped: ' + e.message);
+    return null;
+  }
+}
+
 function emailShell_(title, bodyHtml, ctx) {
   var link = ctx.webAppUrl
     ? '<p style="margin-top:24px;"><a href="' + ctx.webAppUrl + '" style="background:#2f6f4f;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Log today\'s progress →</a></p>'
@@ -108,12 +128,18 @@ function sendEveningEmail() {
   else if (dow === 6) { eveningBlockLabel = 'Saturday Night Prayer'; eveningBlockMinutes = t.saturdayNight; }
   else { eveningBlockLabel = 'Evening Prayer'; eveningBlockMinutes = t.evening; }
 
+  var progressLogUrl = progressLogUrlSafely_();
+  var progressLogLine = progressLogUrl
+    ? '<p style="margin-top:16px;"><a href="' + progressLogUrl + '" style="color:#2f6f4f;">📓 Tonight\'s Progress Log entry →</a></p>'
+    : '';
+
   var body = assistantBriefingHtml_() +
     '<h3>' + eveningBlockLabel + '</h3>' +
     '<p>Target: <strong>' + eveningBlockMinutes + ' minutes</strong> (' + ctx.phaseLabel + ')</p>' +
     '<h3>First Batch of Messages</h3>' +
     '<p>Today\'s message: <strong>' + ctx.set1Message + '</strong></p>' +
-    '<p style="color:#666;">Logged so far today: ' + ctx.prayerLogged.total + ' / ' + t.total + ' prayer minutes.</p>';
+    '<p style="color:#666;">Logged so far today: ' + ctx.prayerLogged.total + ' / ' + t.total + ' prayer minutes.</p>' +
+    progressLogLine;
   MailApp.sendEmail({
     to: recipient_(),
     subject: '🌙 6pm — ' + eveningBlockLabel + ' & First Batch',
