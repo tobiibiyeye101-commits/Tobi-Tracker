@@ -38,7 +38,13 @@
  */
 
 var GEMINI_API_KEY_PROPERTY = 'GEMINI_API_KEY';
-var GEMINI_MODEL = 'gemini-2.0-flash';
+// gemini-2.0-flash was retired; Google's own API error named this as the
+// direct replacement. The generateContent endpoint below (as opposed to
+// the newer Interactions API) remains fully supported, just no longer the
+// recommended default for new work — no other code changes needed to move
+// to a newer model here, only this string, as long as it's a model that
+// still serves generateContent.
+var GEMINI_MODEL = 'gemini-3.6-flash';
 var ASSISTANT_CALENDAR_LOOKAHEAD_DAYS = 2; // today + tomorrow
 
 function setGeminiApiKey(apiKey) {
