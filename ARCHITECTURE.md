@@ -54,16 +54,19 @@ Apps Script project (bound to that Sheet)
 ```
 
 Note: what the app calls "today's two" prayer points is actually two
-independent one-per-day rotations stitched together by
-`getPrayerPointsForDate_()` in `DataService.gs` — one topic from
-`Prayer_Points`, one name from `Prayer_People` (rendered as "Pray for
-&lt;name&gt;", same generic context line every time). `Prayer_People` holds two
-name lists side by side, **Church** and **Outside Church** — purely for the
-sheet owner's own bookkeeping — which `getPrayerPersonForDate_()`
-concatenates into one sequence and rotates through; the app never reveals
-which column a given name came from. Both sheets are seeded with placeholder
-rows (`Prayer_People` with two names under Church and one under Outside
-Church) meant to be edited in-sheet, same as `Prayer_Points` always was.
+independent rotations stitched together by `getPrayerPointsForDate_()` in
+`DataService.gs` — one topic from `Prayer_Points`, one "People to Pray For"
+entry from `Prayer_People` listing today's 3 names. `Prayer_People` holds
+two name lists side by side, **Church** and **Outside Church** — purely for
+the sheet owner's own bookkeeping, never shown in the app.
+`getPrayerPeopleForDate_()` always picks 2 from Church + 1 from Outside
+Church, stepping through each column in the order it's listed (Church
+advances 2 names/day through its list, Outside Church 1 name/day through
+its own list, each wrapping independently) — deterministic, never random,
+and the app never reveals which column a name came from. Both sheets are
+seeded with placeholder rows (`Prayer_People` with two names under Church
+and one under Outside Church) meant to be edited in-sheet, same as
+`Prayer_Points` always was.
 
 Note: `CalendarService.gs` is the one file that reaches outside this Sheet
 entirely — it talks to `CalendarApp` (your default Google Calendar, plus an

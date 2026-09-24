@@ -207,21 +207,18 @@ function getPrayerPointsSheet_() {
 // ---- Prayer People (rotating "pray for" list — replaces the old second-
 // of-two Prayer Points slot) --------------------------------------------
 // Two independent name lists, one per column — Church and Outside Church —
-// purely for your own bookkeeping. The app concatenates both columns into
-// one sequence and rotates through it a name a day (see
-// getPrayerPersonForDate_ in DataService.gs); it never shows which column a
-// name came from.
+// purely for your own bookkeeping. The app shows 2 from Church + 1 from
+// Outside Church each day, stepping through each column in the order
+// listed (see getPrayerPeopleForDate_ in DataService.gs); it never shows
+// which column a name came from.
 function ensurePrayerPeopleSheet_(ss) {
   var sheet = ss.getSheetByName('Prayer_People');
   if (!sheet) {
     sheet = ss.insertSheet('Prayer_People');
     sheet.appendRow(['Church', 'Outside Church']);
     sheet.setFrozenRows(1);
-    sheet.getRange(2, 1, 2, 1).setValues([
-      ['Church Member 1 — edit in Prayer_People sheet'],
-      ['Church Member 2 — edit in Prayer_People sheet']
-    ]);
-    sheet.getRange(2, 2).setValue('Someone Outside Church — edit in Prayer_People sheet');
+    sheet.getRange(2, 1, 2, 1).setValues([['Church Member 1'], ['Church Member 2']]);
+    sheet.getRange(2, 2).setValue('Person Outside Church');
     sheet.autoResizeColumns(1, 2);
   } else {
     migratePrayerPeopleToTwoColumns_(sheet);

@@ -54,39 +54,53 @@ function getPrayerPointForDate_(date) {
 }
 
 /**
- * One name per day from Prayer_People — the second of "today's two". Church
- * and Outside Church are two independent name lists (columns) in the sheet,
- * but they're concatenated into a single sequence here and rotated through
- * as one list — the app never surfaces which column a name came from.
+ * Today's 3 people from Prayer_People — the second of "today's two" points.
+ * Always 2 from Church + 1 from Outside Church (whatever's currently in
+ * each column), stepping through each list in the order it's listed —
+ * never random, never mixed across columns. Church advances 2 names a day
+ * through its list, Outside Church 1 name a day through its own list, each
+ * wrapping back to the top independently once it runs out.
  */
-function getPrayerPersonForDate_(date) {
+function getPrayerPeopleForDate_(date) {
   var sheet = getPrayerPeopleSheet_();
   var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return null;
+  if (lastRow < 2) return [];
   var rows = sheet.getRange(2, 1, lastRow - 1, 2).getValues(); // Church, Outside Church
-  var names = [];
-  rows.forEach(function (r) { if (r[0] !== '') names.push(r[0]); });
-  rows.forEach(function (r) { if (r[1] !== '') names.push(r[1]); });
-  if (!names.length) return null;
-  var idx = Math.max(0, daysSinceStart_(date));
-  return names[idx % names.length];
+  var churchNames = rows.map(function (r) { return r[0]; }).filter(function (n) { return n !== ''; });
+  var outsideNames = rows.map(function (r) { return r[1]; }).filter(function (n) { return n !== ''; });
+  var dayIndex = Math.max(0, daysSinceStart_(date));
+  var picks = [];
+  if (churchNames.length) {
+    var churchStart = (dayIndex * 2) % churchNames.length;
+    picks.push(churchNames[churchStart]);
+    if (churchNames.length > 1) picks.push(churchNames[(churchStart + 1) % churchNames.length]);
+  }
+  if (outsideNames.length) picks.push(outsideNames[dayIndex % outsideNames.length]);
+  return picks;
+}
+
+/** "Alice, Bob, and Carol" / "Alice and Bob" / "Alice" — for the people-to-pray-for line. */
+function joinNames_(names) {
+  if (names.length <= 1) return names[0] || '';
+  if (names.length === 2) return names[0] + ' and ' + names[1];
+  return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
 }
 
 /**
- * "Today's two": one Prayer_Points topic plus one Prayer_People name,
- * each on its own one-per-day rotation through its own list — replaced
- * the old single list that stepped two-at-a-time, so adding the people
- * rotation didn't mean touching the Prayer_Points list or its cadence.
- * Same {title, content}[] shape as before, so nothing downstream
- * (getTodayContext, the web app's renderPrayerPoints) needed to change.
+ * "Today's two": one Prayer_Points topic plus one Prayer_People entry
+ * listing today's 3 people — each on its own rotation through its own
+ * sheet, so adding the people rotation never touches the Prayer_Points
+ * list or its cadence. Same {title, content}[] shape as before, so nothing
+ * downstream (getTodayContext, the web app's renderPrayerPoints) needed to
+ * change beyond this function.
  */
 function getPrayerPointsForDate_(date) {
   var points = [];
   var point = getPrayerPointForDate_(date);
   if (point) points.push(point);
-  var name = getPrayerPersonForDate_(date);
-  if (name) {
-    points.push({ title: 'Pray for ' + name, content: 'Take a moment to pray for them today.' });
+  var people = getPrayerPeopleForDate_(date);
+  if (people.length) {
+    points.push({ title: 'People to Pray For', content: joinNames_(people) + '.' });
   }
   return points;
 }
