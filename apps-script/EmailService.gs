@@ -61,7 +61,7 @@ function assistantBriefingHtml_() {
  * Gemini/Docs being briefly down never breaks the evening email itself.
  * Only called from the evening email: by 6pm most of the day's tracking
  * is in, though anything logged later that evening won't be reflected —
- * re-running it from the Assistant tab's button after the fact updates
+ * re-running it from the STEWARD chamber's button after the fact updates
  * that same entry in place rather than adding a second one.
  */
 function progressLogUrlSafely_() {

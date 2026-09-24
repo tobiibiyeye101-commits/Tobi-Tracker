@@ -15,6 +15,7 @@ function setup() {
   ensureDailyLogSheet_(ss);
   ensureToDoSheet_(ss);
   ensurePrayerPointsSheet_(ss);
+  ensurePrayerPeopleSheet_(ss);
   ensureGymLogSheet_(ss);
   // Only safe to remove the default "Sheet1" once the tabs above exist —
   // Sheets refuses to delete the last remaining sheet in a spreadsheet.
@@ -182,8 +183,9 @@ function getToDoSheet_() {
 }
 
 // ---- Prayer Points ----------------------------------------------------------
-// Content-only — edit the list in this sheet, the app just displays today's
-// two-per-day rotation through it (see getPrayerPointsForDate_).
+// Content-only — edit the list in this sheet, the app steps through it one
+// per day (see getPrayerPointForDate_ in DataService.gs) as the first of
+// "today's two"; the second is a rotating name from Prayer_People below.
 function ensurePrayerPointsSheet_(ss) {
   var sheet = ss.getSheetByName('Prayer_Points');
   if (!sheet) {
@@ -200,6 +202,29 @@ function ensurePrayerPointsSheet_(ss) {
 }
 function getPrayerPointsSheet_() {
   return ensurePrayerPointsSheet_(getOrCreateSpreadsheet_());
+}
+
+// ---- Prayer People (rotating "pray for" list — replaces the old second-
+// of-two Prayer Points slot) --------------------------------------------
+// One name shown per day (see getPrayerPersonForDate_ in DataService.gs).
+// "Church Member" is descriptive only right now — every row rotates
+// equally regardless of it — but it's worth keeping on the sheet since the
+// original ask was specifically 2 members + 1 person outside the church.
+function ensurePrayerPeopleSheet_(ss) {
+  var sheet = ss.getSheetByName('Prayer_People');
+  if (!sheet) {
+    sheet = ss.insertSheet('Prayer_People');
+    sheet.appendRow(['Order', 'Name', 'Church Member']);
+    sheet.setFrozenRows(1);
+    sheet.appendRow([1, 'Church Member 1 — edit in Prayer_People sheet', true]);
+    sheet.appendRow([2, 'Church Member 2 — edit in Prayer_People sheet', true]);
+    sheet.appendRow([3, 'Someone Outside Church — edit in Prayer_People sheet', false]);
+    sheet.autoResizeColumns(1, 3);
+  }
+  return sheet;
+}
+function getPrayerPeopleSheet_() {
+  return ensurePrayerPeopleSheet_(getOrCreateSpreadsheet_());
 }
 
 /**

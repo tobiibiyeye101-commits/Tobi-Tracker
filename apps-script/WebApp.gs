@@ -9,7 +9,7 @@
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
-    .setTitle('Spiritual Progress Tracker')
+    .setTitle('S.T.E.W.A.R.D.')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
@@ -80,7 +80,7 @@ function clientAddCalendarEvent(dateStr, title, description, startTime, endTime)
 
 // AiAssistant.gs — both let a real error (e.g. no API key set yet) surface
 // to the client as-is, unlike the emails' assistantBriefingHtml_(), since
-// here the user is actively looking at the Assistant tab and asking for it.
+// here the user is actively looking at the STEWARD chamber and asking for it.
 function clientGetSmartBriefing() {
   return generateSmartBriefing();
 }

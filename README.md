@@ -1,6 +1,7 @@
-# Spiritual Progress Tracker
+# S.T.E.W.A.R.D.
 
-A zero-cost tracker for the Sep 3 – Oct 31 tracking window: two message
+A zero-cost personal spiritual-growth and schedule tracker for the Sep 3 –
+Oct 31 tracking window: two message
 rotations, a Bible reading plan pointer, and a five-part prayer ramp that
 builds up to 2 hours/day instead of assuming it from day one. It sends
 you three reminder emails a day (7am / 1pm / 6pm) and gives you a small
@@ -22,10 +23,10 @@ about before you turn it on.
 | **Bible reading plan** | You enter Month / Week / Day directly; everything before your current entry is implicitly done. |
 | **Prayer** | 5 components — Morning (1h, 30min Fri/Sat), Evening (1h), Friday Night (fixed, 3h, already established), Saturday Night (fixed, 2h), Campus prayer/prophesying (10min, unscheduled, fills gaps). Flat targets from day one — no ramp. See `PRAYER_PHASES` in `apps-script/Config.gs` to change any of it. |
 | **To-Do List** | Its own tab, fully editable both ways — add/check/edit/delete from the app, or edit rows directly in the `ToDo_List` sheet. |
-| **Prayer Points** | A Title + Content pair per point, edited in the `Prayer_Points` sheet — the app shows 2 per day on a rotation through the list. |
+| **Prayer Points** | Two things shown per day, each on its own one-per-day rotation: a Title + Content topic from the `Prayer_Points` sheet, plus a name to pray for from the `Prayer_People` sheet (a longer list you maintain — two church members and one person outside the church, by default seeded as placeholders for you to fill in). |
 | **Gym** | One row per day (like Daily_Log) — a free-text "today's set" plus a Done checkbox, since the split just varies by what you type. |
 | **Calendar** | Shows what's on your default Google Calendar today, and lets you add a new event (any date, title, optional time, optional description) straight from the app. |
-| **Assistant / S.T.E.W.A.R.D.** *(optional)* | A Gemini-powered "what actually needs attention" briefing, a real chat thread, a daily Progress Log written to a running Google Doc, and — the one proactive piece — a Daily Secretary Briefing pushed to Google Chat every morning. See "AI Assistant" below — nothing here works until you add a (free) API key. |
+| **S.T.E.W.A.R.D. chamber** *(optional)* | A Gemini-powered "what actually needs attention" briefing, a real chat thread, a daily Progress Log written to a running Google Doc, and — the one proactive piece — a Daily Secretary Briefing pushed to Google Chat every morning. Opened via the star icon in the top-right corner rather than living in the tab bar. See "AI Assistant" below — nothing here works until you add a (free) API key. |
 
 ## One-time setup (~10 minutes)
 
@@ -100,8 +101,9 @@ Four things:
 - **A priority briefing / Chat with STEWARD** — what actually needs attention,
   in order, instead of just listing everything, plus a real back-and-forth
   chat thread for ad-hoc questions ("what should I prioritize this evening?",
-  then "what about tomorrow?" as a natural follow-up). Both live in the app's
-  **Assistant** tab; a short version of the briefing is also folded into the
+  then "what about tomorrow?" as a natural follow-up). Both live in the
+  **STEWARD chamber** — tap the star icon in the top-right corner of any tab
+  to open it; a short version of the briefing is also folded into the
   top of all three daily reminder emails. The chat's history lives only in
   that browser tab for that sitting — nothing persists across a reload, and
   each call is still stateless on the server side underneath.
@@ -111,7 +113,7 @@ Four things:
   that day's tracked data. Runs automatically as part of the evening email
   (so it reflects whatever's logged by 6pm — anything you log later that
   night won't be in it until the next run), and there's also a "Write
-  today's entry" button in the Assistant tab for on demand/after the fact.
+  today's entry" button in the STEWARD chamber for on demand/after the fact.
   Running it more than once in a day updates that day's entry rather than
   adding a duplicate.
 - **The Daily Secretary Briefing** — the one proactive piece: a single message
@@ -154,8 +156,8 @@ you add more AI-backed features later.
    select `_setGeminiKey` from the function dropdown, run it once, then delete the
    function. (Same pattern as `setWebAppUrl()` in step 5 above.)
 
-That's it for the Assistant tab and the emails — no new trigger, no redeploy
-needed just for this. Without a key set, the Assistant tab shows a clear "no
+That's it for the STEWARD chamber and the emails — no new trigger, no redeploy
+needed just for this. Without a key set, the chamber shows a clear "no
 API key" message instead of failing silently, and the emails just quietly
 skip the briefing (and the Progress Log entry) and send exactly as before —
 a bad key, a rate limit, or Gemini/Docs being briefly down never breaks the
@@ -209,11 +211,11 @@ lookahead (`SECRETARY_CALENDAR_LOOKAHEAD_DAYS`, 3 days) — all in
   collapsed by default (Prayer Points, Last 14 Days, Add an Event) since they're used
   less often day to day; the rest start open. Nothing here is remembered between visits,
   so the page always opens with those same defaults.
-- If you've set up the AI Assistant, the **Assistant** tab's "Get today's briefing"
-  button (or the top of each reminder email) is the fastest way to see what actually
-  needs attention today rather than reading every card yourself. If you've also set
-  up the Chat webhook, a fuller Daily Secretary Briefing lands in Google Chat every
-  morning on its own — nothing to open for that one.
+- If you've set up the AI Assistant, tap the star icon (top-right corner) to open the
+  **STEWARD chamber** and hit "Get today's briefing" — the fastest way to see what
+  actually needs attention today rather than reading every card yourself. If you've
+  also set up the Chat webhook, a fuller Daily Secretary Briefing lands in Google
+  Chat every morning on its own — nothing to open for that one.
 
 ## Adjusting things later
 

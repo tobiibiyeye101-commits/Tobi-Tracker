@@ -9,17 +9,18 @@
   <meta name="theme-color" content="#131210">
   <style>
     :root {
-      --bg: #131210;
-      --surface: #1b1916;
-      --surface-raised: #211e1a;
-      --ink: #f2ede4;
-      --ink-soft: #b6aa9c;
-      --ink-faint: #7c7164;
-      --border: rgba(242, 237, 228, 0.1);
-      --field-bg: rgba(242, 237, 228, 0.045);
-      --accent: #c9a463;
-      --accent-strong: #e2c084;
-      --focus-ring: #c9a463;
+      --bg: #060b16;
+      --surface: #0d1526;
+      --surface-raised: #131f38;
+      --ink: #e9eefc;
+      --ink-soft: #9fb0d0;
+      --ink-faint: #62729a;
+      --border: rgba(160, 190, 255, 0.14);
+      --field-bg: rgba(160, 190, 255, 0.055);
+      --accent: #4da3ff;
+      --accent-strong: #7cc3ff;
+      --focus-ring: #4da3ff;
+      --on-accent: #04101f; /* text/icon color for anything sitting on top of the accent fill */
     }
     * { box-sizing: border-box; }
     html, body { overflow-x: hidden; }
@@ -35,8 +36,8 @@
        literal — restraint is the point. ---- */
     .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
     .glow { position: absolute; border-radius: 50%; filter: blur(30px); animation: breathe 16s ease-in-out infinite; }
-    .glow-a { width: 520px; height: 520px; top: -12%; left: -14%; background: radial-gradient(circle, rgba(201,164,99,0.16), transparent 70%); }
-    .glow-b { width: 460px; height: 460px; bottom: -16%; right: -12%; background: radial-gradient(circle, rgba(201,164,99,0.1), transparent 70%); animation-direction: reverse; animation-duration: 20s; }
+    .glow-a { width: 520px; height: 520px; top: -12%; left: -14%; background: radial-gradient(circle, rgba(77,163,255,0.18), transparent 70%); }
+    .glow-b { width: 460px; height: 460px; bottom: -16%; right: -12%; background: radial-gradient(circle, rgba(77,163,255,0.12), transparent 70%); animation-direction: reverse; animation-duration: 20s; }
     @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.16); opacity: 0.55; } }
     .grain { position: fixed; inset: 0; z-index: 0; opacity: 0.035; mix-blend-mode: overlay; pointer-events: none; }
 
@@ -70,7 +71,7 @@
       margin-top: 0; transition: background 0.15s ease, color 0.15s ease;
     }
     .tab-btn:hover { color: var(--ink); }
-    .tab-btn.active { background: var(--accent); color: #14120e; }
+    .tab-btn.active { background: var(--accent); color: var(--on-accent); }
     .tab-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
     .tab-panel[hidden] { display: none; }
 
@@ -102,9 +103,9 @@
     .card.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.55s ease, transform 0.55s ease; }
     .card.reveal.in-view { opacity: 1; transform: translateY(0); }
     @keyframes glowPulse {
-      0% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 rgba(201,164,99,0); }
-      35% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(201,164,99,0.5), 0 0 24px rgba(201,164,99,0.25); }
-      100% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 rgba(201,164,99,0); }
+      0% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 rgba(77,163,255,0); }
+      35% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(77,163,255,0.5), 0 0 24px rgba(77,163,255,0.3); }
+      100% { box-shadow: 0 12px 28px rgba(0,0,0,0.28), 0 0 0 rgba(77,163,255,0); }
     }
     .card.glow-pulse { animation: glowPulse 1s ease-out; }
 
@@ -118,7 +119,7 @@
     input[type=number] { font-variant-numeric: tabular-nums; }
     input:focus, select:focus {
       outline: none; border-color: var(--focus-ring);
-      box-shadow: 0 0 0 3px rgba(201, 164, 99, 0.18);
+      box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.2);
     }
     input::placeholder { color: var(--ink-faint); }
 
@@ -128,7 +129,7 @@
     .check input { width: 17px; height: 17px; accent-color: var(--accent); }
 
     button {
-      background: var(--accent); color: #14120e; font-weight: 700;
+      background: var(--accent); color: var(--on-accent); font-weight: 700;
       font-family: "Manrope", sans-serif; letter-spacing: 0.01em;
       border: none; border-radius: 8px; padding: 11px 18px; font-size: 0.88rem;
       cursor: pointer; margin-top: 14px;
@@ -140,10 +141,10 @@
       background: transparent; color: var(--ink-soft);
       border: 1px solid var(--border);
     }
-    button.secondary:hover { background: rgba(242,237,228,0.05); color: var(--ink); }
+    button.secondary:hover { background: rgba(160,190,255,0.07); color: var(--ink); }
 
     .msg { font-weight: 600; color: var(--ink); font-size: 1.02rem; }
-    .progress-bar { background: rgba(242,237,228,0.08); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 8px; }
+    .progress-bar { background: rgba(160,190,255,0.1); border-radius: 4px; height: 6px; overflow: hidden; margin-top: 8px; }
     .progress-fill { background: var(--accent); height: 100%; transition: width 0.4s ease; }
     .pill {
       display: inline-block; background: transparent; color: var(--ink-faint);
@@ -157,7 +158,7 @@
       font-size: 1.05rem; line-height: 1; display: flex; align-items: center; justify-content: center;
       cursor: pointer; flex-shrink: 0; transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
     }
-    .icon-btn:hover { background: rgba(242,237,228,0.05); color: var(--ink); transform: none; }
+    .icon-btn:hover { background: rgba(160,190,255,0.07); color: var(--ink); transform: none; }
     .icon-btn:disabled { opacity: 0.32; cursor: default; }
     .icon-btn:disabled:hover { background: transparent; color: var(--ink-soft); }
     table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; font-variant-numeric: tabular-nums; }
@@ -169,7 +170,7 @@
     /* ---- today's progress ring ---- */
     .ring-wrap { position: relative; width: 136px; height: 136px; margin: 4px auto 14px; }
     .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-    .ring-track { fill: none; stroke: rgba(242,237,228,0.08); stroke-width: 6; }
+    .ring-track { fill: none; stroke: rgba(160,190,255,0.1); stroke-width: 6; }
     .ring-fill {
       fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round;
       stroke-dasharray: 326.7; stroke-dashoffset: 326.7;
@@ -206,7 +207,7 @@
       margin-top: 5px; font-family: "Manrope", sans-serif; resize: vertical;
     }
     textarea#gymWorkout:focus {
-      outline: none; border-color: var(--focus-ring); box-shadow: 0 0 0 3px rgba(201, 164, 99, 0.18);
+      outline: none; border-color: var(--focus-ring); box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.2);
     }
 
     /* ---- To-Do List ---- */
@@ -253,10 +254,89 @@
       padding: 10px 14px; border-radius: 10px; font-size: 0.9rem;
       line-height: 1.5; max-width: 88%; white-space: pre-wrap;
     }
-    .chat-bubble.user { align-self: flex-end; background: var(--accent); color: #14120e; }
+    .chat-bubble.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); }
     .chat-bubble.steward { align-self: flex-start; background: var(--field-bg); border: 1px solid var(--border); color: var(--ink); }
     .chat-bubble.steward.loading { color: var(--ink-faint); font-style: italic; }
     .chat-bubble.steward.error { color: #e3a3a3; border-color: rgba(227,163,163,0.35); }
+
+    /* ---- Chamber (Assistant, opened via the star icon) ---- */
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+
+    .chamber-toggle {
+      background: var(--surface); border: 1px solid var(--border); color: var(--accent-strong);
+      border-radius: 999px; width: 42px; height: 42px; padding: 0; margin: 0;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      flex-shrink: 0; box-shadow: 0 0 0 rgba(77,163,255,0); transition: box-shadow 0.3s ease, transform 0.15s ease;
+      animation: chamberTogglePulse 3.5s ease-in-out infinite;
+    }
+    .chamber-toggle:hover { transform: translateY(-1px); }
+    .chamber-toggle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+    @keyframes chamberTogglePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(77,163,255,0.35); }
+      50% { box-shadow: 0 0 0 7px rgba(77,163,255,0); }
+    }
+    @media (prefers-reduced-motion: reduce) { .chamber-toggle { animation: none; } }
+
+    .chamber-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .chamber-overlay[hidden] { display: none; }
+    .chamber-backdrop {
+      position: absolute; inset: 0; background: rgba(2,6,16,0.72); backdrop-filter: blur(3px);
+    }
+    .chamber-panel {
+      position: relative; z-index: 1; width: 100%; max-width: 560px;
+      max-height: 88vh; overflow-y: auto;
+      background: linear-gradient(180deg, #0a1226 0%, #060b16 100%);
+      border: 1px solid rgba(120,170,255,0.22);
+      border-radius: 22px 22px 0 0;
+      box-shadow: 0 -10px 60px rgba(0,10,40,0.6), 0 0 80px rgba(60,140,255,0.12);
+      padding: 18px 20px 32px;
+      animation: chamberRise 0.32s cubic-bezier(.2,.8,.3,1);
+    }
+    @keyframes chamberRise { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .chamber-panel { animation: none; } }
+
+    .chamber-topbar { display: flex; align-items: center; justify-content: space-between; }
+    .chamber-topbar-title {
+      font-family: "Bodoni Moda", Georgia, serif; font-style: italic; font-weight: 600;
+      font-size: 1.1rem; color: var(--accent-strong); letter-spacing: 0.01em;
+    }
+    .chamber-close {
+      background: transparent; border: 1px solid var(--border); color: var(--ink-soft);
+      width: 32px; height: 32px; border-radius: 999px; padding: 0; margin: 0;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem;
+    }
+    .chamber-close:hover { background: rgba(160,190,255,0.08); color: var(--ink); }
+
+    .steward-orb-wrap { position: relative; width: 160px; height: 160px; margin: 10px auto 6px; display: flex; align-items: center; justify-content: center; }
+    .steward-orb {
+      width: 84px; height: 84px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(150,210,255,0.95), rgba(50,120,230,0.4) 55%, transparent 75%);
+      animation: orbWobble 7s ease-in-out infinite, orbGlow 4s ease-in-out infinite;
+    }
+    @keyframes orbWobble {
+      0%, 100% { border-radius: 42% 58% 65% 35% / 45% 45% 55% 55%; }
+      25% { border-radius: 58% 42% 40% 60% / 60% 35% 65% 40%; }
+      50% { border-radius: 50% 50% 35% 65% / 40% 60% 40% 60%; }
+      75% { border-radius: 35% 65% 55% 45% / 55% 40% 60% 45%; }
+    }
+    @keyframes orbGlow {
+      0%, 100% { box-shadow: 0 0 30px 8px rgba(80,160,255,0.35); }
+      50% { box-shadow: 0 0 48px 14px rgba(80,160,255,0.55); }
+    }
+    .steward-rings { position: absolute; inset: 0; }
+    .steward-ring { fill: none; stroke: rgba(120,180,255,0.35); stroke-width: 1; transform-origin: 80px 80px; }
+    .steward-ring-a { stroke-dasharray: 6 10; animation: ringSpin 18s linear infinite; }
+    .steward-ring-b { stroke-dasharray: 2 14; animation: ringSpin 26s linear infinite reverse; }
+    @keyframes ringSpin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .steward-orb, .steward-ring-a, .steward-ring-b { animation: none; }
+    }
+
+    .chamber-body { margin-top: 4px; }
+    .chamber-body .card:first-child { margin-top: 14px; }
   </style>
 </head>
 <body>
@@ -271,9 +351,18 @@
   </svg>
 
   <div class="content">
-    <div class="eyebrow" id="dateLabel">Loading…</div>
-    <h1>Spiritual Progress Tracker</h1>
-    <div class="sub" id="windowLabel"></div>
+    <div class="header-row">
+      <div>
+        <div class="eyebrow" id="dateLabel">Loading…</div>
+        <h1>S.T.E.W.A.R.D.</h1>
+        <div class="sub" id="windowLabel"></div>
+      </div>
+      <button class="chamber-toggle" id="chamberToggle" aria-label="Open STEWARD" onclick="openChamber()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+          <path d="M19 9l-1.25-2.75L15 5l2.75-1.25L19 1l1.25 2.75L23 5l-2.75 1.25L19 9zm-7.5 1L9 4 6.5 10 0 12.5 6.5 15 9 21l2.5-6L18 12.5 11.5 10z"/>
+        </svg>
+      </button>
+    </div>
     <div id="loading">Loading today's data…</div>
     <div id="app" style="display:none;">
 
@@ -282,7 +371,6 @@
         <button class="tab-btn" data-tab="todo" role="tab" aria-selected="false">To-Do</button>
         <button class="tab-btn" data-tab="gym" role="tab" aria-selected="false">Gym</button>
         <button class="tab-btn" data-tab="calendar" role="tab" aria-selected="false">Calendar</button>
-        <button class="tab-btn" data-tab="assistant" role="tab" aria-selected="false">Assistant</button>
       </div>
 
       <div class="tab-panel" data-tab-panel="tracker">
@@ -464,27 +552,44 @@
         </div>
       </div>
 
-      <div class="tab-panel" data-tab-panel="assistant" hidden>
-        <div class="card">
-          <h2>Today's Briefing</h2>
-          <div class="sub">What actually needs your attention, in order — reads your progress today plus the next couple of days on the calendar.</div>
-          <button class="secondary" onclick="getBriefing()">Get today's briefing</button>
-          <div id="briefingOutput" class="assistant-output"></div>
-        </div>
+      <div class="chamber-overlay" id="chamberOverlay" hidden>
+        <div class="chamber-backdrop" onclick="closeChamber()"></div>
+        <div class="chamber-panel" role="dialog" aria-modal="true" aria-label="S.T.E.W.A.R.D.">
+          <div class="chamber-topbar">
+            <span class="chamber-topbar-title">S.T.E.W.A.R.D.</span>
+            <button class="chamber-close" onclick="closeChamber()" aria-label="Close">✕</button>
+          </div>
+          <div class="steward-orb-wrap" aria-hidden="true">
+            <svg class="steward-rings" viewBox="0 0 160 160">
+              <circle class="steward-ring steward-ring-a" cx="80" cy="80" r="62"></circle>
+              <circle class="steward-ring steward-ring-b" cx="80" cy="80" r="70"></circle>
+            </svg>
+            <div class="steward-orb"></div>
+          </div>
 
-        <div class="card">
-          <h2>Chat with STEWARD</h2>
-          <div class="sub">Ask about your schedule or what's left today — follow-up questions like "what about tomorrow?" work within this sitting.</div>
-          <div id="chatThread" class="chat-thread"></div>
-          <input type="text" id="assistantQuestion" placeholder="e.g. what should I prioritize this evening?">
-          <button class="secondary" onclick="askAssistantQuestion()">Ask</button>
-        </div>
+          <div class="chamber-body">
+            <div class="card">
+              <h2>Today's Briefing</h2>
+              <div class="sub">What actually needs your attention, in order — reads your progress today plus the next couple of days on the calendar.</div>
+              <button class="secondary" onclick="getBriefing()">Get today's briefing</button>
+              <div id="briefingOutput" class="assistant-output"></div>
+            </div>
 
-        <div class="card">
-          <h2>Progress Log</h2>
-          <div class="sub">A running Google Doc — one short journal-style entry per day, written from today's tracked data. Updates today's entry if you run it more than once. Also runs automatically with the evening email once the Assistant is set up.</div>
-          <button class="secondary" onclick="writeProgressLog()">Write today's entry</button>
-          <div id="progressLogOutput" class="assistant-output"></div>
+            <div class="card">
+              <h2>Chat with STEWARD</h2>
+              <div class="sub">Ask about your schedule or what's left today — follow-up questions like "what about tomorrow?" work within this sitting.</div>
+              <div id="chatThread" class="chat-thread"></div>
+              <input type="text" id="assistantQuestion" placeholder="e.g. what should I prioritize this evening?">
+              <button class="secondary" onclick="askAssistantQuestion()">Ask</button>
+            </div>
+
+            <div class="card">
+              <h2>Progress Log</h2>
+              <div class="sub">A running Google Doc — one short journal-style entry per day, written from today's tracked data. Updates today's entry if you run it more than once. Also runs automatically with the evening email once the Assistant is set up.</div>
+              <button class="secondary" onclick="writeProgressLog()">Write today's entry</button>
+              <div id="progressLogOutput" class="assistant-output"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -906,6 +1011,23 @@
       // separate, slower Calendar API call) — fetch it fresh each time the
       // tab is actually opened rather than on every page load/autosave.
       if (name === 'calendar') loadCalendar();
+    }
+
+    // ---- Chamber (Assistant, opened via the star icon) ----------------------
+    function openChamber() {
+      var overlay = document.getElementById('chamberOverlay');
+      overlay.hidden = false;
+      // Same fix as switchTab() above — cards under a [hidden] ancestor never
+      // got a chance to intersect the viewport, so force them visible now.
+      overlay.querySelectorAll('.card.reveal').forEach(function (c) { c.classList.add('in-view'); });
+      document.addEventListener('keydown', chamberEscHandler_);
+    }
+    function closeChamber() {
+      document.getElementById('chamberOverlay').hidden = true;
+      document.removeEventListener('keydown', chamberEscHandler_);
+    }
+    function chamberEscHandler_(e) {
+      if (e.key === 'Escape') closeChamber();
     }
 
     function wireTabs() {

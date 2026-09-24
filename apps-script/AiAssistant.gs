@@ -6,7 +6,7 @@
  * this project already tracks to the Gemini API. Four things:
  *   1. A priority briefing / chat (generateSmartBriefing/askAssistant) —
  *      pull-based: what actually needs attention, in order, or a specific
- *      question, only when the Assistant tab is opened.
+ *      question, only when the STEWARD chamber is opened.
  *   2. A running daily Progress Log, written as an actual Google Doc
  *      (writeTodaysProgressLog) — one short journal-style entry per day.
  *   3. The Daily Secretary Briefing (generateDailySecretaryBriefing/
@@ -149,7 +149,7 @@ function callGemini_(userPrompt, systemPrompt) {
   return text.trim();
 }
 
-/** The auto-generated priority briefing — used by the reminder emails and the web app's Assistant tab. */
+/** The auto-generated priority briefing — used by the reminder emails and the web app's STEWARD chamber. */
 function generateSmartBriefing() {
   return callGemini_(buildAssistantContext_());
 }

@@ -40,17 +40,52 @@ function getPrayerTargetsForDate_(date) {
 }
 
 // ---- Prayer Points (content-only, two-per-day rotation) -------------------
-function getPrayerPointsForDate_(date) {
+/** One topic per day from Prayer_Points — the first of "today's two". */
+function getPrayerPointForDate_(date) {
   var sheet = getPrayerPointsSheet_();
   var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
+  if (lastRow < 2) return null;
   var list = sheet.getRange(2, 2, lastRow - 1, 2).getValues() // Title, Content
     .map(function (r) { return { title: r[0], content: r[1] }; })
     .filter(function (p) { return p.title !== '' || p.content !== ''; });
-  if (!list.length) return [];
-  var idx = Math.max(0, daysSinceStart_(date)) * 2;
-  if (list.length === 1) return [list[0]];
-  return [list[idx % list.length], list[(idx + 1) % list.length]];
+  if (!list.length) return null;
+  var idx = Math.max(0, daysSinceStart_(date));
+  return list[idx % list.length];
+}
+
+/** One person per day from Prayer_People — the second of "today's two". */
+function getPrayerPersonForDate_(date) {
+  var sheet = getPrayerPeopleSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+  var list = sheet.getRange(2, 1, lastRow - 1, 3).getValues() // Order, Name, Church Member
+    .map(function (r) { return { name: r[1], churchMember: r[2] === true }; })
+    .filter(function (p) { return p.name !== ''; });
+  if (!list.length) return null;
+  var idx = Math.max(0, daysSinceStart_(date));
+  return list[idx % list.length];
+}
+
+/**
+ * "Today's two": one Prayer_Points topic plus one Prayer_People name,
+ * each on its own one-per-day rotation through its own list — replaced
+ * the old single list that stepped two-at-a-time, so adding the people
+ * rotation didn't mean touching the Prayer_Points list or its cadence.
+ * Same {title, content}[] shape as before, so nothing downstream
+ * (getTodayContext, the web app's renderPrayerPoints) needed to change.
+ */
+function getPrayerPointsForDate_(date) {
+  var points = [];
+  var point = getPrayerPointForDate_(date);
+  if (point) points.push(point);
+  var person = getPrayerPersonForDate_(date);
+  if (person) {
+    points.push({
+      title: 'Pray for ' + person.name,
+      content: person.churchMember ? 'A member of your church.' : 'Someone outside your church.'
+    });
+  }
+  return points;
 }
 
 // ---- To-Do List ---------------------------------------------------------------

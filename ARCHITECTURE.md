@@ -10,7 +10,18 @@ someone non-technical who wants to understand what they're using, and any LLM
 This is a personal habit tracker for a fixed stretch of time — September 3 to
 October 31 — covering five things someone is trying to stay consistent with:
 two rotations of sermon-style messages, a daily devotional, a Bible reading
-plan, and a five-part prayer structure. It costs nothing to run because it's
+plan, and a five-part prayer structure. Branded **S.T.E.W.A.R.D.** in the
+app itself (the `<h1>`, the browser tab title) — that rename is scoped to
+what the person actually sees; the underlying Google Sheet ("Tobi Spiritual
+Progress Tracker") and the Progress Log Doc keep their original names in
+Drive, since those are personal-identification labels on files, not the
+app's UI. The app itself runs a dark navy-and-blue theme end to end (a
+`:root` CSS custom-property palette in `Index.html`, so it's one block to
+retheme rather than hunting down individual colors), and the optional AI
+Assistant lives behind a star icon in the top-right corner rather than its
+own tab — tapping it opens a full-screen "chamber" with a wobbling glowing
+orb, styled to feel like a distinct, more futuristic space from the rest of
+the tracker. It costs nothing to run because it's
 built entirely on one Google account: a Google Sheet holds all the data, and a
 small Google Apps Script program does everything else — sends three reminder
 emails a day (7am, 1pm, 6pm), and serves a one-page mobile-friendly website
@@ -26,7 +37,8 @@ Google Sheet ("Tobi Spiritual Progress Tracker")
  ├─ Pointers         — single row: current Set 1 index, current Set 2 index, current Bible M/W/D
  ├─ Daily_Log        — one row per calendar day, 22 columns
  ├─ ToDo_List        — ID | Task | Done | Created — freely edited from the app or the sheet
- ├─ Prayer_Points    — Order | Title | Content — edited in-sheet only, app shows 2/day rotating
+ ├─ Prayer_Points    — Order | Title | Content — edited in-sheet only, app steps through 1/day
+ ├─ Prayer_People    — Order | Name | Church Member — a longer rotating "pray for" list, 1/day
  └─ Gym_Log          — one row per calendar day: Date | Day | Workout | Done | Last Updated
 
 Apps Script project (bound to that Sheet)
@@ -40,6 +52,16 @@ Apps Script project (bound to that Sheet)
  ├─ WebApp.gs         — doGet() entry point + the functions the page can call
  └─ Index.html        — the tabbed logging page itself (served by WebApp.gs)
 ```
+
+Note: what the app calls "today's two" prayer points is actually two
+independent one-per-day rotations stitched together by
+`getPrayerPointsForDate_()` in `DataService.gs` — one topic from
+`Prayer_Points`, one name from `Prayer_People` (rendered as "Pray for
+&lt;name&gt;", with the sheet's Church Member flag only changing the one line
+of context text shown, not the rotation itself). Both sheets are seeded with
+placeholder rows (`Prayer_People` with two "Church Member N" rows and one
+"Someone Outside Church" row) meant to be edited in-sheet, same as
+`Prayer_Points` always was.
 
 Note: `CalendarService.gs` is the one file that reaches outside this Sheet
 entirely — it talks to `CalendarApp` (your default Google Calendar, plus an
@@ -57,8 +79,9 @@ scope for the read/create it still does.)
 `AiAssistant.gs` is the other file that reaches outside this Sheet, and the
 only one that leaves Google entirely: `UrlFetchApp.fetch()` to the Gemini
 API. Entirely optional (nothing else depends on it) and mostly on-demand —
-the briefing/chat/Progress-Log button only ever runs when the Assistant tab
-asks for it, or a reminder email is being built. The one exception is the
+the briefing/chat/Progress-Log button only ever runs when the STEWARD
+chamber (opened via the star icon, `openChamber()`/`closeChamber()` in
+`Index.html`) asks for it, or a reminder email is being built. The one exception is the
 Daily Secretary Briefing (below), which does run on a schedule, piggybacked
 on the existing 7am trigger rather than a timer of its own. All of it reads
 the same `getTodayContext()` everything else uses, plus a multi-day calendar
@@ -68,7 +91,7 @@ today). `EmailService.gs`'s `assistantBriefingHtml_()`/`progressLogUrlSafely_()`
 both wrap their call in a try/catch specifically so a missing API key, a
 rate limit, or Gemini/Docs being briefly down can never break the reminder
 emails themselves — they just silently omit that one piece. The web app's
-Assistant tab, by contrast, lets a real failure surface to the person
+STEWARD chamber, by contrast, lets a real failure surface to the person
 looking right at it.
 
 The Progress Log itself is a real Google Doc, not a Sheet row — the one
