@@ -53,17 +53,23 @@ function getPrayerPointForDate_(date) {
   return list[idx % list.length];
 }
 
-/** One person per day from Prayer_People — the second of "today's two". */
+/**
+ * One name per day from Prayer_People — the second of "today's two". Church
+ * and Outside Church are two independent name lists (columns) in the sheet,
+ * but they're concatenated into a single sequence here and rotated through
+ * as one list — the app never surfaces which column a name came from.
+ */
 function getPrayerPersonForDate_(date) {
   var sheet = getPrayerPeopleSheet_();
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
-  var list = sheet.getRange(2, 1, lastRow - 1, 3).getValues() // Order, Name, Church Member
-    .map(function (r) { return { name: r[1], churchMember: r[2] === true }; })
-    .filter(function (p) { return p.name !== ''; });
-  if (!list.length) return null;
+  var rows = sheet.getRange(2, 1, lastRow - 1, 2).getValues(); // Church, Outside Church
+  var names = [];
+  rows.forEach(function (r) { if (r[0] !== '') names.push(r[0]); });
+  rows.forEach(function (r) { if (r[1] !== '') names.push(r[1]); });
+  if (!names.length) return null;
   var idx = Math.max(0, daysSinceStart_(date));
-  return list[idx % list.length];
+  return names[idx % names.length];
 }
 
 /**
@@ -78,12 +84,9 @@ function getPrayerPointsForDate_(date) {
   var points = [];
   var point = getPrayerPointForDate_(date);
   if (point) points.push(point);
-  var person = getPrayerPersonForDate_(date);
-  if (person) {
-    points.push({
-      title: 'Pray for ' + person.name,
-      content: person.churchMember ? 'A member of your church.' : 'Someone outside your church.'
-    });
+  var name = getPrayerPersonForDate_(date);
+  if (name) {
+    points.push({ title: 'Pray for ' + name, content: 'Take a moment to pray for them today.' });
   }
   return points;
 }

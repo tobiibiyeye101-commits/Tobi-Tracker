@@ -38,7 +38,7 @@ Google Sheet ("Tobi Spiritual Progress Tracker")
  ├─ Daily_Log        — one row per calendar day, 22 columns
  ├─ ToDo_List        — ID | Task | Done | Created — freely edited from the app or the sheet
  ├─ Prayer_Points    — Order | Title | Content — edited in-sheet only, app steps through 1/day
- ├─ Prayer_People    — Order | Name | Church Member — a longer rotating "pray for" list, 1/day
+ ├─ Prayer_People    — Church | Outside Church — two name lists, concatenated + rotated 1/day
  └─ Gym_Log          — one row per calendar day: Date | Day | Workout | Done | Last Updated
 
 Apps Script project (bound to that Sheet)
@@ -57,11 +57,13 @@ Note: what the app calls "today's two" prayer points is actually two
 independent one-per-day rotations stitched together by
 `getPrayerPointsForDate_()` in `DataService.gs` — one topic from
 `Prayer_Points`, one name from `Prayer_People` (rendered as "Pray for
-&lt;name&gt;", with the sheet's Church Member flag only changing the one line
-of context text shown, not the rotation itself). Both sheets are seeded with
-placeholder rows (`Prayer_People` with two "Church Member N" rows and one
-"Someone Outside Church" row) meant to be edited in-sheet, same as
-`Prayer_Points` always was.
+&lt;name&gt;", same generic context line every time). `Prayer_People` holds two
+name lists side by side, **Church** and **Outside Church** — purely for the
+sheet owner's own bookkeeping — which `getPrayerPersonForDate_()`
+concatenates into one sequence and rotates through; the app never reveals
+which column a given name came from. Both sheets are seeded with placeholder
+rows (`Prayer_People` with two names under Church and one under Outside
+Church) meant to be edited in-sheet, same as `Prayer_Points` always was.
 
 Note: `CalendarService.gs` is the one file that reaches outside this Sheet
 entirely — it talks to `CalendarApp` (your default Google Calendar, plus an

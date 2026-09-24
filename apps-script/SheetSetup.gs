@@ -206,25 +206,64 @@ function getPrayerPointsSheet_() {
 
 // ---- Prayer People (rotating "pray for" list — replaces the old second-
 // of-two Prayer Points slot) --------------------------------------------
-// One name shown per day (see getPrayerPersonForDate_ in DataService.gs).
-// "Church Member" is descriptive only right now — every row rotates
-// equally regardless of it — but it's worth keeping on the sheet since the
-// original ask was specifically 2 members + 1 person outside the church.
+// Two independent name lists, one per column — Church and Outside Church —
+// purely for your own bookkeeping. The app concatenates both columns into
+// one sequence and rotates through it a name a day (see
+// getPrayerPersonForDate_ in DataService.gs); it never shows which column a
+// name came from.
 function ensurePrayerPeopleSheet_(ss) {
   var sheet = ss.getSheetByName('Prayer_People');
   if (!sheet) {
     sheet = ss.insertSheet('Prayer_People');
-    sheet.appendRow(['Order', 'Name', 'Church Member']);
+    sheet.appendRow(['Church', 'Outside Church']);
     sheet.setFrozenRows(1);
-    sheet.appendRow([1, 'Church Member 1 — edit in Prayer_People sheet', true]);
-    sheet.appendRow([2, 'Church Member 2 — edit in Prayer_People sheet', true]);
-    sheet.appendRow([3, 'Someone Outside Church — edit in Prayer_People sheet', false]);
-    sheet.autoResizeColumns(1, 3);
+    sheet.getRange(2, 1, 2, 1).setValues([
+      ['Church Member 1 — edit in Prayer_People sheet'],
+      ['Church Member 2 — edit in Prayer_People sheet']
+    ]);
+    sheet.getRange(2, 2).setValue('Someone Outside Church — edit in Prayer_People sheet');
+    sheet.autoResizeColumns(1, 2);
+  } else {
+    migratePrayerPeopleToTwoColumns_(sheet);
   }
   return sheet;
 }
 function getPrayerPeopleSheet_() {
   return ensurePrayerPeopleSheet_(getOrCreateSpreadsheet_());
+}
+
+/**
+ * If Prayer_People predates the two-column Church/Outside Church shape, it
+ * has Order | Name | Church Member instead. Split its names into the two
+ * new columns by that boolean, then rewrite the sheet — same "reshape in
+ * place, keep the data" pattern as the other migrate*_ functions here.
+ */
+function migratePrayerPeopleToTwoColumns_(sheet) {
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headers[0] === 'Church' && headers[1] === 'Outside Church') return; // already migrated
+
+  var nameCol = headers.indexOf('Name') + 1; // 1-based
+  var churchCol = headers.indexOf('Church Member') + 1;
+  if (nameCol === 0 || churchCol === 0) return; // unexpected shape, don't guess
+
+  var lastRow = sheet.getLastRow();
+  var churchNames = [];
+  var outsideNames = [];
+  if (lastRow >= 2) {
+    sheet.getRange(2, 1, lastRow - 1, lastCol).getValues().forEach(function (r) {
+      var name = r[nameCol - 1];
+      if (name === '') return;
+      (r[churchCol - 1] === true ? churchNames : outsideNames).push(name);
+    });
+  }
+
+  sheet.clear();
+  sheet.appendRow(['Church', 'Outside Church']);
+  sheet.setFrozenRows(1);
+  if (churchNames.length) sheet.getRange(2, 1, churchNames.length, 1).setValues(churchNames.map(function (n) { return [n]; }));
+  if (outsideNames.length) sheet.getRange(2, 2, outsideNames.length, 1).setValues(outsideNames.map(function (n) { return [n]; }));
+  sheet.autoResizeColumns(1, 2);
 }
 
 /**
